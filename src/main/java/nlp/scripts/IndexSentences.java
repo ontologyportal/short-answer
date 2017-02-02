@@ -1,14 +1,14 @@
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+package nlp.scripts;
+
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.store.SimpleFSDirectory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -17,7 +17,7 @@ public class IndexSentences {
 
     private static void indexDocs(String wikipediaDir, String indexDir) throws IOException {
 
-        StandardAnalyzer analyzer = new StandardAnalyzer();
+        EnglishAnalyzer analyzer = new EnglishAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
 
         Directory d = new SimpleFSDirectory(Paths.get(indexDir));
@@ -52,9 +52,8 @@ public class IndexSentences {
     }
 
     public static void main(String[] args) throws IOException {
-        //String wikipediaDir = "/Users/yan/Downloads/wikipedia2014en/wikipedia.txt.dump.20140615-en.SZTAKI/segmented/1";
-        String wikipediaDir = "/Users/yan/Downloads/Question_Answer_Dataset_v1.2/segmented";
-        String indexDir = "/Users/yan/scratch/qa/indexes/qa-dataset_v1.2";
-        indexDocs(wikipediaDir, indexDir);
+        String corpusDir = args[0]; //"/Users/yan/Downloads/Question_Answer_Dataset_v1.2/segmented";
+        String indexDir = args[1]; //"/Users/yan/scratch/qa/indexes/qa-dataset_v1.2";
+        indexDocs(corpusDir, indexDir);
     }
 }

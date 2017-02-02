@@ -1,5 +1,7 @@
+package nlp.data;
+
 import edu.stanford.nlp.util.Pair;
-import features.SparseFeatureVector;
+import nlp.features.SparseFeatureVector;
 
 import java.util.ArrayList;
 import java.util.Collections;

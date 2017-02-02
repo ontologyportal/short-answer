@@ -1,3 +1,5 @@
+package nlp.qa;
+
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.parser.nndep.DependencyParser;
@@ -15,7 +17,7 @@ import java.util.stream.Stream;
 
 public class QuestionFociExtractor {
 
-    private final static HashSet<String> questionWords = set("how what when where which who whom whose why");
+    public final static HashSet<String> questionWords = set("how what when where which who whom whose why");
     private final static HashSet<String> imperativeWords = set("define describe names name tell say give");
     //private final static HashSet<String> helperVerbs = set("am be was is were do does did 's are can");
     //private final static HashSet<String> entailment = set("called named known", helperVerbs);

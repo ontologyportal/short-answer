@@ -1,12 +1,16 @@
+package nlp.learning;
+
 import edu.stanford.nlp.util.Pair;
-import features.SparseFeatureVector;
+import nlp.data.DataSet;
+import nlp.data.Labels;
+import nlp.features.SparseFeatureVector;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PassiveAggressiveClassifier implements Serializable{
+public class PassiveAggressiveClassifier implements Scorer, Serializable {
 
     public static final int serialVersionUID = 1;
     private final Labels labels;
@@ -68,23 +72,13 @@ public class PassiveAggressiveClassifier implements Serializable{
         return l;
     }
 
-    public void train(DataSet train, DataSet validate, int iter) {
-
-        for (int i = 0; i < iter; i++) {
-            double currentLoss = train.dataPoints.stream().mapToDouble(d -> step(d.second, d.first)).sum();
-            System.out.println(String.format("Current loss over %d data points: %f", train.dataPoints.size(), currentLoss));
-
-            if (i % 10 == 0) {
-                System.out.println(String.format("intermediate perf for %d iters, accuracy: %f", i, test(validate)));
-            }
-        }
-
-        System.out.println(String.format("Ended training after %d iters, accuracy: %f", iter, test(validate)));
+    public double train(DataSet train) {
+        return train.dataPoints.stream().mapToDouble(d -> step(d.second, d.first)).sum();
     }
 
     public double test(DataSet test) {
         double score = test.dataPoints.stream().mapToDouble(d -> {
-            List<Pair<String, Double>> prediction = predict(d.second);
+            List<Pair<String, Double>> prediction = score(d.second);
             double tempScore = labels.index(prediction.get(0).first) == d.first ? 1.0 : 0.0;
             if (tempScore < 1.0 && lookAtSecondWhenTesting) tempScore = labels.index(prediction.get(1).first) == d.first ? 1.0 : 0.0;
             return tempScore;
@@ -93,7 +87,7 @@ public class PassiveAggressiveClassifier implements Serializable{
         return score / test.dataPoints.size();
     }
 
-    public List<Pair<String, Double>> predict(SparseFeatureVector dataPoint) {
+    public List<Pair<String, Double>> score(SparseFeatureVector dataPoint) {
 
         List<Pair<String, Double>> results = labels.labels().mapToObj(l ->
                 new Pair<>(labels.label(l), w[l].dot(dataPoint))).collect(Collectors.toList());

@@ -1,4 +1,7 @@
+package nlp.data;
+
 import edu.stanford.nlp.util.Pair;
+import nlp.features.ClassificationFeaturizationPipeline;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -14,7 +17,7 @@ public class DataReader {
     private DataSet train;
     private DataSet test;
 
-    public DataReader(Path trainPath, Path testPath, boolean gross, FeaturizationPipeline pipeline, String charsetName) throws IOException {
+    public DataReader(Path trainPath, Path testPath, boolean gross, ClassificationFeaturizationPipeline pipeline, String charsetName) throws IOException {
         Charset charset = Charset.forName(charsetName);
         this.train = read(trainPath, gross, pipeline, charset);
         this.test = read(testPath, gross, pipeline, charset);
@@ -22,7 +25,7 @@ public class DataReader {
         this.test.labels = labels;
     }
 
-    private DataSet read(Path dataPath, boolean gross, FeaturizationPipeline pipeline, Charset charset) throws IOException {
+    private DataSet read(Path dataPath, boolean gross, ClassificationFeaturizationPipeline pipeline, Charset charset) throws IOException {
 
         DataSet dataSet = new DataSet();
 

@@ -1,9 +1,13 @@
-import features.*;
+package nlp.features;
+
+import nlp.features.*;
+import nlp.qa.QuestionFociExtractor;
+import nlp.qa.QuestionFociTerms;
 
 import java.io.IOException;
 import java.nio.file.Paths;
 
-public class FeaturizationPipeline {
+public class ClassificationFeaturizationPipeline {
 
     private final static String dependencyModel = "english_UD.gz";
     private final static String browClustersModel = "brown-rcv1.clean.tokenized-CoNLL03.txt-c1000-freq1.txt";
@@ -12,7 +16,7 @@ public class FeaturizationPipeline {
     private final QuestionFociExtractor extractor;
     private final WordFeaturizer pipeline;
 
-    public FeaturizationPipeline(String modelsPath) throws IOException {
+    public ClassificationFeaturizationPipeline(String modelsPath) throws IOException {
 
         this.extractor = new QuestionFociExtractor(Paths.get(modelsPath, dependencyModel).toString());
 
