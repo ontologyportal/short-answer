@@ -43,14 +43,16 @@ public class Demo {
          */
 
         questions.add("What did Lincoln love?");
-
+        questions.add("What does Kathy want?");
+        questions.add("What a car is?");
+        questions.add("What is the estimated population of Egypt?");
 
         /**********************************************************
          */
 
-        String indexDir = args[0]; //"/Users/yan/scratch/qa/indexes/qa-dataset_v1.2";
-        String modelsPath = args[1]; //"/Users/yan/scratch/qa/question-classification/models";
-        String classifierModel = args[2]; //"question-classifier.pa80.ser"
+        String indexDir = args[0]; //"/Users/yan/scratch/short-answer-data/index";
+        String modelsPath = args[1]; //"/Users/yan/scratch/short-answer-data/models";
+        String classifierModel = args[2]; //"question-classifier.pa770.ser"
 
         Directory dir = FSDirectory.open(Paths.get(indexDir));
         IndexReader reader = DirectoryReader.open(dir);
