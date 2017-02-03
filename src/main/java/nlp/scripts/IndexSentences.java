@@ -1,3 +1,13 @@
+/*
+ *  This code is copyright CloudMinds 2017.
+ *
+ *  Author: Yan Virin jan.virin@gmail.com
+ *
+ *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
+ *  Please cite the following article in any publication with references:
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ */
+
 package nlp.scripts;
 
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -13,9 +23,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+/**
+ * This class indexed sentences in lucene
+ */
 public class IndexSentences {
 
-    private static void indexDocs(String wikipediaDir, String indexDir) throws IOException {
+    /****************************************************************
+     * indexes the sentences
+     */
+    private static void indexDocs(String inputDir, String indexDir) throws IOException {
 
         EnglishAnalyzer analyzer = new EnglishAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
@@ -23,7 +39,7 @@ public class IndexSentences {
         Directory d = new SimpleFSDirectory(Paths.get(indexDir));
         IndexWriter writer = new IndexWriter(d, config);
 
-        Files.list(Paths.get(wikipediaDir)).forEach(file -> {
+        Files.list(Paths.get(inputDir)).forEach(file -> {
             try {
                 Files.lines(file).forEach(line -> {
                     try {
@@ -45,12 +61,18 @@ public class IndexSentences {
         writer.close();
     }
 
+    /****************************************************************
+     * @return a document with the sentence field
+     */
     private static Document toDocument(String line) {
         Document document = new Document();
         document.add(new TextField("sentence", line, Field.Store.YES));
         return document;
     }
 
+    /****************************************************************
+     * runs the indexing of all the sentences which represents the candidates for the answers
+     */
     public static void main(String[] args) throws IOException {
         String corpusDir = args[0]; //"/Users/yan/Downloads/Question_Answer_Dataset_v1.2/segmented";
         String indexDir = args[1]; //"/Users/yan/scratch/qa/indexes/qa-dataset_v1.2";

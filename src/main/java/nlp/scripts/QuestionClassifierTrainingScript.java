@@ -1,10 +1,20 @@
+/*
+ *  This code is copyright CloudMinds 2017.
+ *
+ *  Author: Yan Virin jan.virin@gmail.com
+ *
+ *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
+ *  Please cite the following article in any publication with references:
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ */
+
 package nlp.scripts;
 
 
 import edu.stanford.nlp.util.Pair;
-import nlp.data.DataReader;
 import nlp.data.DataSet;
-import nlp.features.ClassificationFeaturizationPipeline;
+import nlp.data.QCDataReader;
+import nlp.features.QCFeaturizationPipeline;
 import nlp.learning.PassiveAggressiveClassifier;
 
 import java.io.IOException;
@@ -16,12 +26,12 @@ public class QuestionClassifierTrainingScript {
 
         double C = Double.parseDouble(args[0]);
 
-        String modelsPath = args[0]; //"/Users/yan/scratch/qa/question-classification/models";
-        String questionsDataPath = args[1]; //"/Users/yan/scratch/qa/question-classification/data";
+        String modelsPath = args[1]; //"/Users/yan/scratch/qa/question-classification/models";
+        String questionsDataPath = args[2]; //"/Users/yan/scratch/qa/question-classification/data";
 
-        ClassificationFeaturizationPipeline pipeline = new ClassificationFeaturizationPipeline(modelsPath);
+        QCFeaturizationPipeline pipeline = new QCFeaturizationPipeline(modelsPath);
 
-        DataReader reader = new DataReader(Paths.get(questionsDataPath, "train"),
+        QCDataReader reader = new QCDataReader(Paths.get(questionsDataPath, "train"),
                 Paths.get(questionsDataPath, "test"), false, pipeline, "ISO-8859-1");
 
         //reader.getTrain().dataPoints.forEach(System.out::println);

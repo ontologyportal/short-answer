@@ -1,3 +1,13 @@
+/*
+ *  This code is copyright CloudMinds 2017.
+ *
+ *  Author: Yan Virin jan.virin@gmail.com
+ *
+ *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
+ *  Please cite the following article in any publication with references:
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ */
+
 package nlp.semantics;
 
 import edu.emory.clir.clearnlp.component.mode.dep.AbstractDEPParser;
@@ -16,6 +26,9 @@ import edu.emory.clir.clearnlp.util.lang.TLanguage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * This class implements a simple parser which parses a sentence and returns a clearnlp parse tree
+ */
 public class SemanticParser {
 
     private final static String brownClustersXZ = "brown-rcv1.clean.tokenized-CoNLL03.txt-c1000-freq1.txt.xz";
@@ -36,6 +49,9 @@ public class SemanticParser {
     private final AbstractSRLabeler srl;
     private final AbstractNERecognizer ner;
 
+    /****************************************************************
+     * instance of the parser wrapping needed clearnlp models
+     */
     public SemanticParser() {
         List<String> paths = new ArrayList<>();
         paths.add(brownClustersXZ);
@@ -52,6 +68,9 @@ public class SemanticParser {
         this.ner = NLPUtils.getNERecognizer(language, nerModelXZ);
     }
 
+    /****************************************************************
+     * @return a parse with pos, dep, srl and other labels
+     */
     public DEPTree parse(String sentence) {
         DEPTree tree = new DEPTree(this.tokenizer.tokenize(sentence));
         pos.process(tree);
@@ -61,10 +80,4 @@ public class SemanticParser {
         ner.process(tree);
         return tree;
     }
-
-
-
-
-
-
 }

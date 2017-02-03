@@ -1,3 +1,13 @@
+/*
+ *  This code is copyright CloudMinds 2017.
+ *
+ *  Author: Yan Virin jan.virin@gmail.com
+ *
+ *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
+ *  Please cite the following article in any publication with references:
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ */
+
 package nlp.qa;
 
 import edu.emory.clir.clearnlp.dependency.DEPNode;
@@ -7,7 +17,7 @@ import edu.emory.clir.clearnlp.util.arc.SRLArc;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.Sets;
 import nlp.features.AnswerExtractionFeaturizer;
-import nlp.features.ClassificationFeaturizationPipeline;
+import nlp.features.QCFeaturizationPipeline;
 import nlp.features.SparseFeatureVector;
 import nlp.learning.Scorer;
 import nlp.semantics.SemanticParser;
@@ -16,6 +26,9 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * This is a manually set scorer of the features for extracting the answer
+ */
 class ManuallySetExtractingScorer implements Scorer {
 
     private SparseFeatureVector weightsVector;
@@ -23,6 +36,8 @@ class ManuallySetExtractingScorer implements Scorer {
     public ManuallySetExtractingScorer() {
 
         // define the weights here
+        // under current manual approach, all those features represent some negative
+        // effect which should be penalized
         weightsVector = new SparseFeatureVector();
         weightsVector.add(AnswerExtractionFeaturizer.featureName(AnswerExtractionFeaturizer.ARGM), -1.0);
         weightsVector.add(AnswerExtractionFeaturizer.featureName(AnswerExtractionFeaturizer.PREP), -1.0);
@@ -34,21 +49,37 @@ class ManuallySetExtractingScorer implements Scorer {
         weightsVector.add(AnswerExtractionFeaturizer.featureName(AnswerExtractionFeaturizer.SEMANTIC_NONMATCH), -1.0);
     }
 
+    /****************************************************************
+     * @return scoring the datapoint with the manual weights vector
+     */
     @Override
     public List<Pair<String, Double>> score(SparseFeatureVector dataPoint) {
+
         return Collections.singletonList(new Pair<>("BEST", dataPoint.dot(weightsVector)));
     }
 }
 
+/**
+ *
+ */
 public class ShortAnswerExtractor {
 
     private final SemanticParser semanticParser;
+
     private final Scorer classifier;
-    private final ClassificationFeaturizationPipeline classificationFeaturizer;
+
+    private final QCFeaturizationPipeline classificationFeaturizer;
+
     private final Scorer extractingScorer;
+
     private final AnswerExtractionFeaturizer extractingFeaturizer;
 
-    public ShortAnswerExtractor(SemanticParser semanticParser, Scorer classifier, ClassificationFeaturizationPipeline classificationFeaturizer) {
+    /****************************************************************
+     * @return instance of the extractor initialized with all the models
+     */
+    public ShortAnswerExtractor(SemanticParser semanticParser, Scorer classifier,
+                                QCFeaturizationPipeline classificationFeaturizer) {
+
         this.semanticParser = semanticParser;
         this.classifier = classifier;
         this.classificationFeaturizer = classificationFeaturizer;
@@ -56,7 +87,32 @@ public class ShortAnswerExtractor {
         this.extractingFeaturizer = new AnswerExtractionFeaturizer();
     }
 
-    public DEPNode genericExtract(DEPTree questionParsed, DEPTree answerParsed, String questionCategory) {
+    /****************************************************************
+     * @return a single word extracted from the @param answer,
+     *         as a short answer to the @param question
+     */
+    public String extract(String question, String answer) {
+
+        List<Pair<String, Double>> predicted = classifier.score(classificationFeaturizer.featurize(answer));
+
+        // based on the class and semantic roles for both sentence and question - extract the extract
+        DEPTree questionParsed = semanticParser.parse(question);
+        DEPTree answerParsed = semanticParser.parse(answer);
+
+        // TODO: run through all the inner extractors; right now using only the generic extraction technique
+        String questionCategory = classifier.score(classificationFeaturizer.featurize(question)).get(0).first;
+        DEPNode result = genericExtract(questionParsed, answerParsed, questionCategory);
+        if (result != null)
+            return result.getWordForm();
+
+        return null;
+    }
+
+    /****************************************************************
+     * makes a generic attempt to extract a short answer given semantic roles labeled graphs
+     * and questions category
+     */
+    private DEPNode genericExtract(DEPTree questionParsed, DEPTree answerParsed, String questionCategory) {
 
         DEPNode questionNode = findQuestionWord(questionParsed);
         DEPNode verbNode = findVerb(questionNode, questionParsed);
@@ -77,31 +133,22 @@ public class ShortAnswerExtractor {
         return best.get(0).first.getNode();
     }
 
-    public String extract(String question, String answer) {
-
-        List<Pair<String, Double>> predicted = classifier.score(classificationFeaturizer.featurize(answer));
-
-        // based on the class and semantic roles for both sentence and question - extract the extract
-        DEPTree questionParsed = semanticParser.parse(question);
-        DEPTree answerParsed = semanticParser.parse(answer);
-
-        // TODO: run through all the inner extractors; right now using only the generic extraction technique
-        String questionCategory = classifier.score(classificationFeaturizer.featurize(question)).get(0).first;
-        DEPNode result = genericExtract(questionParsed, answerParsed, questionCategory);
-        if (result != null)
-            return result.getWordForm();
-
-        return null;
-    }
-
+    /****************************************************************
+     * @return
+     */
     private List<SRLArc> getSemanticArcs(DEPNode node, DEPTree tree) {
+
         SRLTree srlTree = tree.getSRLTree(node);
         if (srlTree == null)
             return new ArrayList<>();
         return srlTree.getArgumentArcList();
     }
 
+    /****************************************************************
+     * @return
+     */
     private Pair<DEPNode, Integer> findNode(DEPNode target, DEPNode source, int depth, Function<DEPNode, Boolean> predicate, DEPTree tree){
+
         if (predicate.apply(target)) return new Pair<>(source != null ? source : target, depth);
         for (SRLArc arc : getSemanticArcs(target, tree)) {
             Pair<DEPNode, Integer> verb = findNode(arc.getNode(), source,depth + 1, predicate, tree);
@@ -110,7 +157,10 @@ public class ShortAnswerExtractor {
         return null;
     }
 
-    public DEPNode findVerb(DEPNode questionNode, DEPTree tree) {
+    /****************************************************************
+     * @return
+     */
+    private DEPNode findVerb(DEPNode questionNode, DEPTree tree) {
 
         Pair<DEPNode, Integer> verb1 = findNode(questionNode, null, 0, n -> n.getPOSTag().startsWith("V"), tree);
         List<Pair<DEPNode, Integer>> res = new ArrayList<>();
@@ -124,11 +174,18 @@ public class ShortAnswerExtractor {
         return res.stream().min(Comparator.comparingInt(x -> x.second)).orElse(new Pair<>(null, 0)).first;
     }
 
-    public DEPNode findQuestionWord(DEPTree questionTree) {
+    /****************************************************************
+     * @return
+     */
+    private DEPNode findQuestionWord(DEPTree questionTree) {
+
         return Arrays.stream(questionTree.toNodeArray()).filter(n ->
                 QuestionFociExtractor.questionWords.contains(n.getWordForm().toLowerCase())).findFirst().get();
     }
 
+    /****************************************************************
+     * @return
+     */
     private double score(List<SRLArc> l1, List<SRLArc> l2) {
 
         HashSet<String> s1 = new HashSet<>(l1.stream().map(a -> a.getLabel()).collect(Collectors.toList()));
@@ -137,7 +194,10 @@ public class ShortAnswerExtractor {
         return Sets.intersection(s1, s2).size() / (double) Sets.union(s1, s2).size();
     }
 
-    public DEPNode matchSemantics(DEPNode target, DEPTree tree) {
+    /****************************************************************
+     * @return
+     */
+    private DEPNode matchSemantics(DEPNode target, DEPTree tree) {
 
         List<SRLArc> targetArcs = getSemanticArcs(target, tree);
         List<Pair<DEPNode, Double>> scoredNodes = new ArrayList<>();

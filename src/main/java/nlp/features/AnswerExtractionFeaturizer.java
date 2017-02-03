@@ -1,3 +1,13 @@
+/*
+ *  This code is copyright CloudMinds 2017.
+ *
+ *  Author: Yan Virin jan.virin@gmail.com
+ *
+ *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
+ *  Please cite the following article in any publication with references:
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ */
+
 package nlp.features;
 
 import edu.emory.clir.clearnlp.dependency.DEPNode;
@@ -8,11 +18,14 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * This class represents the featurizer for the actual answer extraction task
+ *
+ */
 public class AnswerExtractionFeaturizer {
 
-    public static final String EXTRACTION = "EXTRACTION";
-
-    public static final String CLASS = "CLASS";
+    private static final String EXTRACTION = "EXTRACTION";
+    private static final String CLASS = "CLASS";
 
     private static final Pattern ARGM_PAT  = Pattern.compile("A[0-9]+");
     public static final String ARGM = "ARGM";
@@ -24,19 +37,29 @@ public class AnswerExtractionFeaturizer {
     public static final String WH        = "W";
     public static final String ADVERB    = "RB";
 
+    /****************************************************************
+     * @return full feature name with the addPrefix
+     */
     public static String featureName(String name) {
         return String.format("%s_%s", EXTRACTION, name);
     }
 
+    /****************************************************************
+     * @return whether question is a human or entity category
+     */
     private boolean isHumanOrEntity(String questionCategory) {
+
         return questionCategory.startsWith("ENTY") || questionCategory.startsWith("HUM");
     }
 
+    /****************************************************************
+     * @return the feature vector based on the candidate and supporting context
+     */
     public SparseFeatureVector featurize(SRLArc candidate, List<SRLArc> original, String questionCategory) {
 
         SparseFeatureVector result = new SparseFeatureVector();
 
-        // set the gross class as a feature
+        // set the category of the question as a feature
         result.add(featureName(String.format("%s_%s", CLASS, questionCategory)));
 
         String candidateLabel = candidate.getLabel();

@@ -1,9 +1,21 @@
+/*
+ *  This code is copyright CloudMinds 2017.
+ *
+ *  Author: Yan Virin jan.virin@gmail.com
+ *
+ *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
+ *  Please cite the following article in any publication with references:
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ */
+
 package nlp.features;
 
 import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -23,7 +35,7 @@ public abstract class WordFeaturizer implements Combiner {
 
         // generate the nlp.features
         List<SparseFeatureVector> wordFeatures = new ArrayList<>();
-        extractedWords.forEach(w -> wordFeatures.add(featurize(w.first).prefix(w.second)));
+        extractedWords.forEach(w -> wordFeatures.add(featurize(w.first).addPrefix(w.second)));
 
         // mergeWith them all into one for unigrams bag of words
         wordFeatures.forEach(result::mergeWith);
