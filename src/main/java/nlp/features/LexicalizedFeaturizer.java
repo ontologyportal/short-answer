@@ -25,6 +25,7 @@ public class LexicalizedFeaturizer extends WordFeaturizer {
      */
     @Override
     boolean doBigrams() {
+
         return true;
     }
 

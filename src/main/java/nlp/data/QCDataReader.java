@@ -12,6 +12,7 @@ package nlp.data;
 
 import edu.stanford.nlp.util.Pair;
 import nlp.features.QCFeaturizationPipeline;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -76,17 +77,26 @@ public class QCDataReader {
     /****************************************************************
      * @return The training set
      */
-    public DataSet getTrain() { return train; }
+    public DataSet getTrain() {
+
+        return train;
+    }
 
     /****************************************************************
      * @return The test set. Note: This is not to be used a validation set,
      *         but rather as an official test set for a task. For generating dev
      *         and validation sets see @DataSet.split(double) method.
      */
-    public DataSet getTest() { return test; }
+    public DataSet getTest() {
+
+        return test;
+    }
 
     /****************************************************************
      * @return The labels read during loading of the dataset
      */
-    public Labels getLabels() { return labels; }
+    public Labels getLabels() {
+
+        return labels;
+    }
 }

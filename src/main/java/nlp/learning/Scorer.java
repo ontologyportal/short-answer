@@ -17,5 +17,6 @@ import nlp.features.SparseFeatureVector;
 import java.util.List;
 
 public interface Scorer {
+
     List<Pair<String, Double>> score(SparseFeatureVector dataPoint);
 }

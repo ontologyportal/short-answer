@@ -44,7 +44,7 @@ public class IndexSentences {
                 Files.lines(file).forEach(line -> {
                     try {
                         // index only non empty lines with content which is other than all spaces
-                        if (line.length() > 0 && line.chars().filter(i -> (char)i != ' ').count() > 0)
+                        if (line.length() > 0 && line.chars().filter(i -> (char) i != ' ').count() > 0)
                             writer.addDocument(toDocument(line));
                     }
                     catch (Exception e) {
@@ -65,6 +65,7 @@ public class IndexSentences {
      * @return a document with the sentence field
      */
     private static Document toDocument(String line) {
+
         Document document = new Document();
         document.add(new TextField("sentence", line, Field.Store.YES));
         return document;
@@ -74,6 +75,7 @@ public class IndexSentences {
      * runs the indexing of all the sentences which represents the candidates for the answers
      */
     public static void main(String[] args) throws IOException {
+
         String corpusDir = args[0]; //"/Users/yan/Downloads/Question_Answer_Dataset_v1.2/segmented";
         String indexDir = args[1]; //"/Users/yan/scratch/qa/indexes/qa-dataset_v1.2";
         indexDocs(corpusDir, indexDir);

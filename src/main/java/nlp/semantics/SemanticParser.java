@@ -53,6 +53,7 @@ public class SemanticParser {
      * instance of the parser wrapping needed clearnlp models
      */
     public SemanticParser() {
+
         List<String> paths = new ArrayList<>();
         paths.add(brownClustersXZ);
 
@@ -61,10 +62,10 @@ public class SemanticParser {
 
         // initialize statistical models
         this.tokenizer = NLPUtils.getTokenizer(language);
-        this.morph     = NLPUtils.getMPAnalyzer(language);
-        this.pos = NLPUtils.getPOSTagger   (language, posModelXZ);
-        this.dep = NLPUtils.getDEPParser   (language, depModelXZ, new DEPConfiguration(ROOT));
-        this.srl = NLPUtils.getSRLabeler   (language, srlModelXZ, srlConf);
+        this.morph = NLPUtils.getMPAnalyzer(language);
+        this.pos = NLPUtils.getPOSTagger(language, posModelXZ);
+        this.dep = NLPUtils.getDEPParser(language, depModelXZ, new DEPConfiguration(ROOT));
+        this.srl = NLPUtils.getSRLabeler(language, srlModelXZ, srlConf);
         this.ner = NLPUtils.getNERecognizer(language, nerModelXZ);
     }
 
@@ -72,6 +73,7 @@ public class SemanticParser {
      * @return a parse with pos, dep, srl and other labels
      */
     public DEPTree parse(String sentence) {
+
         DEPTree tree = new DEPTree(this.tokenizer.tokenize(sentence));
         pos.process(tree);
         morph.process(tree);

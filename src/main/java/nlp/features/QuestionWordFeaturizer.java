@@ -23,6 +23,7 @@ public class QuestionWordFeaturizer extends LexicalizedFeaturizer {
      */
     @Override
     boolean doBigrams() {
+
         return false;
     }
 

@@ -47,7 +47,7 @@ public class DataSet {
         part1.labels = labels;
         part2.labels = labels;
 
-        int lastIndex = (int)(rawDataPoints.size()*part);
+        int lastIndex = (int) (rawDataPoints.size() * part);
         for (int i = 0; i < rawDataPoints.size(); i++) {
             DataSet temp = i < lastIndex ? part1 : part2;
             temp.rawDataPoints.add(rawDataPoints.get(i));

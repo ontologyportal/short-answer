@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * This class extracs important words from a question later on to be used to featurize
  * the sentence for learning a classifier.
  * TODO: more work is needed in order to replicate the exact
- *       approach in: http://www.adampease.org/professional/GlobalWordNet2016.pdf
+ * approach in: http://www.adampease.org/professional/GlobalWordNet2016.pdf
  */
 public class QuestionFociExtractor {
 
@@ -87,7 +87,8 @@ public class QuestionFociExtractor {
         Optional<TypedDependency> questionOption = graph.stream().filter(d -> questionWords.contains(d.dep().word().toLowerCase())).findFirst();
         if (questionOption.isPresent()) {
             return questionOption.get();
-        } else {
+        }
+        else {
             // look for the imperative
             Optional<TypedDependency> imperativeOption = graph.stream().filter(d -> imperativeWords.contains(d.dep().word().toLowerCase())).findFirst();
             return imperativeOption.orElse(null);
@@ -153,7 +154,8 @@ public class QuestionFociExtractor {
                     results.add(new Pair<>(firstWordGov.get().gov(), "FOCUS"));
                     Optional<TypedDependency> secondWordGov = dependencyGraph.stream().filter(d -> d.dep().equals(firstWordGov.get().gov()) && isSuitableTerm(d, false)).findFirst();
                     secondWordGov.ifPresent(td -> results.add(new Pair<>(td.gov(), "FOCUS")));
-                } else {
+                }
+                else {
                     Optional<TypedDependency> firstWordDep = dependencyGraph.stream().filter(d -> d.gov().equals(questionWord.dep()) && isSuitableTerm(d)).findFirst();
                     if (firstWordDep.isPresent()) {
                         results.add(new Pair<>(firstWordDep.get().dep(), "FOCUS"));
@@ -180,7 +182,7 @@ public class QuestionFociExtractor {
         }
 
         return new QuestionFociTerms(results.stream().filter(d -> d.first.word() != null).collect(Collectors.toList()),
-            questionWords.contains(questionWordString)?questionWordString:"imperative");
+                questionWords.contains(questionWordString) ? questionWordString : "imperative");
     }
 
     /****************************************************************

@@ -38,7 +38,7 @@ public class WordVecFeaturizer extends WordFeaturizer {
             // creating a new instance to generate a small footprint in RAM
             String key = new String(vals[0]);
             Double[] vector = new Double[vals.length - 1];
-            IntStream.range(1, vals.length).forEach(i -> vector[i-1] = Double.parseDouble(vals[i]));
+            IntStream.range(1, vals.length).forEach(i -> vector[i - 1] = Double.parseDouble(vals[i]));
             vectors.put(key, vector);
             if (size != -1 && size != vector.length)
                 throw new RuntimeException("Not consistent wordvec size");

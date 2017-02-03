@@ -40,6 +40,7 @@ public class Labels implements Serializable {
      * @return All the indices of the labels as a stream
      */
     public IntStream labels() {
+
         return IntStream.range(0, index.size());
     }
 
@@ -47,6 +48,7 @@ public class Labels implements Serializable {
      * @return The label given the index
      */
     public String label(int index) {
+
         return reverseIndex.get(index);
     }
 
@@ -54,6 +56,7 @@ public class Labels implements Serializable {
      * @return The number of labels in the mapping
      */
     public int size() {
+
         return index.size();
     }
 }

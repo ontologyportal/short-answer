@@ -22,12 +22,15 @@ import java.util.Map;
  */
 public class SparseFeatureVector implements Serializable {
 
+    public final static long serialVersionUID = -4775327850083864734L;
+
     private final Map<String, Double> features;
 
     /****************************************************************
      * @return Returns the features as a map
      */
     public Map<String, Double> getFeatures() {
+
         return features;
     }
 
@@ -108,7 +111,7 @@ public class SparseFeatureVector implements Serializable {
     public SparseFeatureVector cross(SparseFeatureVector other) {
 
         SparseFeatureVector crossed = new SparseFeatureVector();
-        this.features.forEach((k1, v1) -> other.features.forEach((k2,v2) ->
+        this.features.forEach((k1, v1) -> other.features.forEach((k2, v2) ->
                 crossed.add(String.format("%s_X_%s", k1, k2))));
         return crossed;
     }
@@ -117,6 +120,7 @@ public class SparseFeatureVector implements Serializable {
      * Adds the other features to this on aby adding values
      */
     public void add(SparseFeatureVector other) {
+
         other.features.forEach((k, v) -> features.merge(k, v, (v1, v2) -> v1 + v2));
     }
 
@@ -126,7 +130,7 @@ public class SparseFeatureVector implements Serializable {
     public SparseFeatureVector mult(double w) {
 
         SparseFeatureVector result = new SparseFeatureVector();
-        features.forEach((k, v) -> result.add(k, v*w));
+        features.forEach((k, v) -> result.add(k, v * w));
         return result;
     }
 

@@ -147,11 +147,11 @@ public class ShortAnswerExtractor {
     /****************************************************************
      * @return
      */
-    private Pair<DEPNode, Integer> findNode(DEPNode target, DEPNode source, int depth, Function<DEPNode, Boolean> predicate, DEPTree tree){
+    private Pair<DEPNode, Integer> findNode(DEPNode target, DEPNode source, int depth, Function<DEPNode, Boolean> predicate, DEPTree tree) {
 
         if (predicate.apply(target)) return new Pair<>(source != null ? source : target, depth);
         for (SRLArc arc : getSemanticArcs(target, tree)) {
-            Pair<DEPNode, Integer> verb = findNode(arc.getNode(), source,depth + 1, predicate, tree);
+            Pair<DEPNode, Integer> verb = findNode(arc.getNode(), source, depth + 1, predicate, tree);
             if (verb != null) return verb;
         }
         return null;

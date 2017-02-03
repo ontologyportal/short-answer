@@ -47,6 +47,7 @@ public class ListsFeaturizer extends WordFeaturizer {
      */
     @Override
     boolean doBigrams() {
+
         return false;
     }
 

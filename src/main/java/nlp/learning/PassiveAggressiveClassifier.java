@@ -77,6 +77,7 @@ public class PassiveAggressiveClassifier implements Scorer, Serializable {
      * @return index S computed from the data point at hand and the label
      */
     private int getS(SparseFeatureVector x, int y) {
+
         return labels.labels().filter(l -> l != y).
                 mapToObj(l -> new Pair<>(l, w[l].dot(x))).
                 max(Comparator.comparingDouble(Pair::second)).get().first;

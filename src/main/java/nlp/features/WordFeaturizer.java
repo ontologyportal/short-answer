@@ -26,6 +26,7 @@ public abstract class WordFeaturizer implements Combiner {
     abstract SparseFeatureVector featurize(String word);
 
     public SparseFeatureVector featurize(IndexedWord word) {
+
         return featurize(word.word());
     }
 
@@ -53,6 +54,7 @@ public abstract class WordFeaturizer implements Combiner {
 
     @Override
     public WordFeaturizer combine(WordFeaturizer featurizer) {
+
         CombiningFeaturizer combiningFeaturizer = new CombiningFeaturizer();
         return combiningFeaturizer.combine(this).combine(featurizer);
     }
@@ -64,26 +66,31 @@ class CombiningFeaturizer extends WordFeaturizer implements Combiner {
 
     @Override
     boolean doBigrams() {
+
         throw new RuntimeException("Should not be used!");
     }
 
     @Override
     SparseFeatureVector featurize(String word) {
+
         throw new RuntimeException("Should not be used!");
     }
 
     public SparseFeatureVector featurize(List<Pair<IndexedWord, String>> extractedWords) {
+
         return SparseFeatureVector.merge(featurizers.stream().
                 map(r -> r.featurize(extractedWords)).collect(Collectors.toList()));
     }
 
     @Override
     public WordFeaturizer combine(WordFeaturizer featurizer) {
+
         featurizers.add(featurizer);
         return this;
     }
 }
 
 interface Combiner {
+
     WordFeaturizer combine(WordFeaturizer other);
 }

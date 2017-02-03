@@ -21,6 +21,7 @@ public class QuestionFociTerms {
     public String questionWord;
 
     public QuestionFociTerms(List<Pair<IndexedWord, String>> termsWithTypes, String questionWord) {
+
         this.termsWithTypes = termsWithTypes;
         this.questionWord = questionWord;
     }

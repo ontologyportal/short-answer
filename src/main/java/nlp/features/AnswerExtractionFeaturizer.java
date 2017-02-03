@@ -20,27 +20,27 @@ import java.util.stream.Collectors;
 
 /**
  * This class represents the featurizer for the actual answer extraction task
- *
  */
 public class AnswerExtractionFeaturizer {
 
     private static final String EXTRACTION = "EXTRACTION";
     private static final String CLASS = "CLASS";
 
-    private static final Pattern ARGM_PAT  = Pattern.compile("A[0-9]+");
+    private static final Pattern ARGM_PAT = Pattern.compile("A[0-9]+");
     public static final String ARGM = "ARGM";
     public static final String SEMANTIC_NONMATCH = "SEMANTIC_NONMATCH";
-    public static final String PREP  = "prep";
-    public static final String WORD  = "WORD";
+    public static final String PREP = "prep";
+    public static final String WORD = "WORD";
     public static final String LEMMA = "LEMMA";
     public static final String LOWERCASE = "LOWERCASE";
-    public static final String WH        = "W";
-    public static final String ADVERB    = "RB";
+    public static final String WH = "W";
+    public static final String ADVERB = "RB";
 
     /****************************************************************
      * @return full feature name with the addPrefix
      */
     public static String featureName(String name) {
+
         return String.format("%s_%s", EXTRACTION, name);
     }
 
@@ -85,10 +85,12 @@ public class AnswerExtractionFeaturizer {
         }
 
         // same word feature
-        if (originalNodes.stream().map(n -> n.getWordForm()).anyMatch(w -> w.equals(candidate.getNode().getWordForm()))) result.add(featureName(WORD));
+        if (originalNodes.stream().map(n -> n.getWordForm()).anyMatch(w -> w.equals(candidate.getNode().getWordForm())))
+            result.add(featureName(WORD));
 
         // same lemma feature
-        if (originalNodes.stream().map(n -> n.getLemma()).anyMatch(w -> w.equals(candidate.getNode().getLemma()))) result.add(featureName(LEMMA));
+        if (originalNodes.stream().map(n -> n.getLemma()).anyMatch(w -> w.equals(candidate.getNode().getLemma())))
+            result.add(featureName(LEMMA));
 
 
         // WH quantifier pos tag feature

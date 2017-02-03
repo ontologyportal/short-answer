@@ -22,6 +22,7 @@ public class NerFeaturizer extends WordFeaturizer {
      */
     @Override
     boolean doBigrams() {
+
         return false;
     }
 
@@ -30,6 +31,7 @@ public class NerFeaturizer extends WordFeaturizer {
      */
     @Override
     SparseFeatureVector featurize(String word) {
+
         throw new RuntimeException("Should not be used!");
     }
 
