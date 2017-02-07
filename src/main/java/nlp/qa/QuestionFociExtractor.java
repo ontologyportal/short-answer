@@ -15,6 +15,8 @@ import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.parser.nndep.DependencyParser;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.semgraph.SemanticGraph;
+import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations;
 import edu.stanford.nlp.trees.GrammaticalStructure;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.CoreMap;
@@ -35,29 +37,21 @@ public class QuestionFociExtractor {
 
     public final static HashSet<String> questionWords = set("how what when where which who whom whose why");
     private final static HashSet<String> imperativeWords = set("define describe names name tell say give");
-
-    // private final static HashSet<String> helperVerbs = set("am be was is were do does did 's are can");
-    // private final static HashSet<String> entailment = set("called named known", helperVerbs);
-
-    private DependencyParser parser;
+    private final static HashSet<String> muchMany = set("much many");
+    private final static HashSet<String> typeBrandKind = set("type brand kind");
+    private final static HashSet<String> entailment = set("am be was is were do does did 's are can called named known");
 
     /****************************************************************
      * @return an instance of the foci extractor
      */
-    public QuestionFociExtractor(String parserPath) {
-
-        this.parser = DependencyParser.loadFromModelFile(parserPath);
-    }
+    public QuestionFociExtractor() { }
 
     /****************************************************************
      * @return a dependency parse of the text
      */
-    private Collection<TypedDependency> parse(String text) {
+    private SemanticGraph parse(String text) {
 
-        CoreMap sentence = annotateSentence(text);
-        GrammaticalStructure gs = parser.predict(sentence);
-
-        return gs.typedDependencies();
+        return annotateSentence(text).get(SemanticGraphCoreAnnotations.BasicDependenciesAnnotation.class);
     }
 
     /****************************************************************
@@ -67,7 +61,9 @@ public class QuestionFociExtractor {
     private CoreMap annotateSentence(String text) {
 
         // Create the Stanford CoreNLP pipeline
-        Properties props = PropertiesUtils.asProperties("annotators", "tokenize,ssplit,pos,lemma,ner");
+        Properties props = PropertiesUtils.asProperties("annotators", "tokenize,ssplit,pos,lemma,ner,depparse",
+                                                               "ssplit.isOneSentence", "true",
+                                                               "tokenize.language", "en");
         StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
 
         Annotation doc = new Annotation(text);
@@ -82,15 +78,21 @@ public class QuestionFociExtractor {
      * if not found, go for the imperative word.
      * @param graph The dependency graph
      */
-    private TypedDependency extractQuestionWord(Collection<TypedDependency> graph) {
+    private IndexedWord extractQuestionWord(SemanticGraph graph) {
 
-        Optional<TypedDependency> questionOption = graph.stream().filter(d -> questionWords.contains(d.dep().word().toLowerCase())).findFirst();
+        // get all graph nodes
+        List<IndexedWord> nodes = graph.getAllNodesByWordPattern(".*");
+        nodes.sort(Comparator.comparingInt(n -> n.index()));
+
+        Optional<IndexedWord> questionOption = nodes.stream().
+                filter(w -> questionWords.contains(w.word().toLowerCase())).findFirst();
         if (questionOption.isPresent()) {
             return questionOption.get();
         }
         else {
             // look for the imperative
-            Optional<TypedDependency> imperativeOption = graph.stream().filter(d -> imperativeWords.contains(d.dep().word().toLowerCase())).findFirst();
+            Optional<IndexedWord> imperativeOption = nodes.stream().
+                    filter(w -> imperativeWords.contains(w.word().toLowerCase())).findFirst();
             return imperativeOption.orElse(null);
         }
     }
@@ -102,79 +104,71 @@ public class QuestionFociExtractor {
 
         final List<Pair<IndexedWord, String>> results = new ArrayList<>();
 
-        Collection<TypedDependency> dependencyGraph = parse(sentence);
+        SemanticGraph graph = parse(sentence);
 
-        //dependencyGraph.forEach(d -> System.out.println(d + " : " + d.dep().backingLabel().tag()));
-
-        TypedDependency questionWord = extractQuestionWord(dependencyGraph);
+        IndexedWord questionWord = extractQuestionWord(graph);
 
         if (questionWord == null) {
-            return new QuestionFociTerms(results, "");
+            return new QuestionFociTerms(results, "", "");
         }
 
-        String questionWordString = questionWord.dep().word().toLowerCase();
+//        System.out.println(graph);
+//        System.out.println("question word: " + questionWord);
 
-        IndexedWord rootWord = GrammaticalStructure.getRoots(dependencyGraph).stream().findFirst().get().dep();
+        String questionWordString = questionWord.word().toLowerCase();
+        String questionType = "NONE";
 
-        Optional<TypedDependency> focus = dependencyGraph.stream().filter(d ->
-                d.dep().equals(questionWord.dep())).findFirst();
+        Optional<IndexedWord> rootVerb = graph.getRoots().stream().filter(w -> w.tag().startsWith("V")).findFirst();
 
-        if (focus.isPresent()) {
+        List<IndexedWord> headWords = graph.getParentList(questionWord);
+
+        if (!headWords.isEmpty()) {
 
             // different treatment of "how" question
             if (isHowQuestionWord(questionWord)) {
 
+                headWords.forEach(w -> results.add(new Pair<>(w, "FOCUS")));
+
                 // e.g. regular much, many
+                if (headWords.size() == 1 && muchMany.contains(headWords.get(0).word().toLowerCase())) {
 
-                results.add(new Pair<>(focus.get().gov(), "FOCUS"));
-
-                Optional<TypedDependency> quantity = dependencyGraph.stream().filter(d -> d.dep().equals(focus.get().gov())).findFirst();
-
-                // either QUANTITY or MUCH or SPAN
-                if (quantity.isPresent()) {
-                    if (rootWord.equals(quantity.get().gov())) {
-                        IndexedWord word = focus.get().gov();
-                        // / MUCH or SPAN
-                        if (word.word().toLowerCase().equals("much")) {
-                            results.add(new Pair<>(word, "MUCH"));
-                        }
-                        else {
-                            results.add(new Pair<>(word, "SPAN"));
-                        }
+                    List<IndexedWord> parentList = graph.getParentList(headWords.get(0));
+                    if (parentList.isEmpty()) {
+                        questionType = headWords.get(0).word().toLowerCase().equals("much") ? "MUCH" : "SPAN";
                     }
                     else {
-                        results.add(new Pair<>(quantity.get().gov(), "QUANTITY"));
+                        parentList.forEach(w -> results.add(new Pair<>(w, "QUANTITY")));
                     }
                 }
             }
-            else { // what, which ...
+            else {
 
-                Optional<TypedDependency> firstWordGov = dependencyGraph.stream().filter(d -> d.dep().equals(questionWord.dep()) && isSuitableTerm(d, false)).findFirst();
-                if (firstWordGov.isPresent()) {
-                    results.add(new Pair<>(firstWordGov.get().gov(), "FOCUS"));
-                    Optional<TypedDependency> secondWordGov = dependencyGraph.stream().filter(d -> d.dep().equals(firstWordGov.get().gov()) && isSuitableTerm(d, false)).findFirst();
-                    secondWordGov.ifPresent(td -> results.add(new Pair<>(td.gov(), "FOCUS")));
-                }
-                else {
-                    Optional<TypedDependency> firstWordDep = dependencyGraph.stream().filter(d -> d.gov().equals(questionWord.dep()) && isSuitableTerm(d)).findFirst();
-                    if (firstWordDep.isPresent()) {
-                        results.add(new Pair<>(firstWordDep.get().dep(), "FOCUS"));
-                        Optional<TypedDependency> secondWordDep = dependencyGraph.stream().filter(d -> d.gov().equals(firstWordDep.get().dep()) && isSuitableTerm(d)).findFirst();
-                        secondWordDep.ifPresent(td -> results.add(new Pair<>(td.dep(), "FOCUS")));
-                    }
-                }
+                // which, what...
+                headWords.forEach(w -> results.add(new Pair<>(w, "FOCUS")));
             }
+        }
 
-            // if no feature by now, it is probably entailment
-            // entailment like "is, was, called, ..."
-            if (results.isEmpty() && rootWord.tag().startsWith("V")) {
-                Stream<TypedDependency> rootChildren1 = dependencyGraph.stream().filter(d -> d.gov().equals(rootWord));
-                rootChildren1.filter(QuestionFociExtractor::isSuitableTerm).forEach(d -> results.add(new Pair<>(d.dep(), "FOCUS")));
+        // type brand kind
+        List<Pair<IndexedWord, String>> typeBrandResults = results.stream().filter(w ->
+                typeBrandKind.contains(w.first.word().toLowerCase())).collect(Collectors.toList());
 
-//                Stream<TypedDependency> rootChildren2 = dependencyGraph.stream().filter(d -> d.gov().equals(rootWord));
-//                rootChildren2.forEach(c -> dependencyGraph.stream().filter(d -> d.gov().equals(c.dep()) && isSuitableTerm(d)).
-//                        forEach(d -> results.add(new Pair<>(d.dep(), "FOCUS"))));
-            }
+        typeBrandResults.forEach(w -> graph.getChildList(w.first).stream().
+                        filter(QuestionFociExtractor::isSuitableTerm).forEach(c -> results.add(new Pair<>(c, "FOCUS"))));
+
+        // entailment
+        if (rootVerb.isPresent() && entailment.contains(rootVerb.get().word().toLowerCase())) {
+            graph.getChildList(rootVerb.get()).stream().filter(QuestionFociExtractor::isSuitableTerm).forEach(w ->
+                    results.add(new Pair<>(w, "FOCUS")));
+        } else {
+
+            // children of question word
+            graph.getChildList(questionWord).stream().filter(QuestionFociExtractor::isSuitableTerm).forEach(w ->
+                    results.add(new Pair<>(w, "FOCUS")));
+
+            // children of a verb which is a child of question word
+            graph.getChildList(questionWord).stream().filter(c -> c.tag().startsWith("V")).forEach(v ->
+                    graph.getChildList(v).stream().filter(QuestionFociExtractor::isSuitableTerm).forEach(w ->
+            results.add(new Pair<>(w, "FOCUS"))));
         }
 
         if (results.stream().allMatch(w -> w.first.word() == null)) {
@@ -182,15 +176,15 @@ public class QuestionFociExtractor {
         }
 
         return new QuestionFociTerms(results.stream().filter(d -> d.first.word() != null).collect(Collectors.toList()),
-                questionWords.contains(questionWordString) ? questionWordString : "imperative");
+                questionWords.contains(questionWordString) ? questionWordString : "imperative", questionType);
     }
 
     /****************************************************************
      * @return whether it is a how question
      */
-    private static boolean isHowQuestionWord(TypedDependency dep) {
+    private static boolean isHowQuestionWord(IndexedWord word) {
 
-        return dep.dep().word().toLowerCase().equals("how");
+        return word.word().toLowerCase().equals("how");
     }
 
     /****************************************************************
@@ -204,17 +198,8 @@ public class QuestionFociExtractor {
     /****************************************************************
      * @return whether this term should be extracted
      */
-    private static boolean isSuitableTerm(TypedDependency d) {
+    private static boolean isSuitableTerm(IndexedWord d) {
 
-        return isSuitableTerm(d, true);
-    }
-
-    /****************************************************************
-     * @return whether this term should be extracted
-     */
-    private static boolean isSuitableTerm(TypedDependency d, boolean checkDep) {
-
-        String tag = (checkDep ? d.dep() : d.gov()).backingLabel().tag();
-        return tag != null && (tag.startsWith("N") || tag.startsWith("J") || tag.startsWith("F") || tag.startsWith("S"));
+        return d.tag() != null && (d.tag().startsWith("N") || d.tag().startsWith("F") || d.tag().startsWith("S") || d.tag().startsWith("J"));
     }
 }
