@@ -7,12 +7,13 @@ based on: http://www.adampease.org/professional/GlobalWordNet2016.pdf
 Build
 =====
 
-Run "maven package" and use the assembled jar (second fat jar) in your class path.
+Run "mvn package" and use the assembled jar (second fat jar) in your class path.
 
 Demo
 ====
 
-Run the Demo by:
+Run the Demo with the following (adapting the paths to your local structure):
 
-java -Xmx14G -cp [your path to the fat jar]/cobra-0.98.4-jar-with-dependencies.jar nlp.scripts.Demo index-dir models-dir question-classifier.pa770.ser
-
+java -Xmx7G -cp target/cobra-0.98.4-jar-with-dependencies.jar nlp.scripts.Demo
+/home/user/CloudMinds/short-answer/short-answer-data/index
+/home/user/CloudMinds/short-answer/short-answer-data/models question-classifier.pa770.ser
