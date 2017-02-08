@@ -40,16 +40,25 @@ public class QuestionFociExtractor {
     private final static HashSet<String> muchMany = set("much many");
     private final static HashSet<String> typeBrandKind = set("type brand kind");
     private final static HashSet<String> entailment = set("am be was is were do does did 's are can called named known");
+    private final StanfordCoreNLP pipeline;
 
     /****************************************************************
      * @return an instance of the foci extractor
      */
-    public QuestionFociExtractor() { }
+    public QuestionFociExtractor() {
+
+        // Create the Stanford CoreNLP pipeline
+        Properties props = PropertiesUtils.asProperties("annotators", "tokenize,ssplit,pos,lemma,ner,depparse",
+                "ssplit.isOneSentence", "true",
+                "tokenize.language", "en");
+
+        this.pipeline = new StanfordCoreNLP(props);
+    }
 
     /****************************************************************
      * @return a dependency parse of the text
      */
-    private SemanticGraph parse(String text) {
+    public SemanticGraph parse(String text) {
 
         return annotateSentence(text).get(SemanticGraphCoreAnnotations.BasicDependenciesAnnotation.class);
     }
@@ -59,12 +68,6 @@ public class QuestionFociExtractor {
      *         Note: assuming that @param text contains only one sentence
      */
     private CoreMap annotateSentence(String text) {
-
-        // Create the Stanford CoreNLP pipeline
-        Properties props = PropertiesUtils.asProperties("annotators", "tokenize,ssplit,pos,lemma,ner,depparse",
-                                                               "ssplit.isOneSentence", "true",
-                                                               "tokenize.language", "en");
-        StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
 
         Annotation doc = new Annotation(text);
         pipeline.annotate(doc);
