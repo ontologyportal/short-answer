@@ -17,12 +17,14 @@ import java.util.List;
 
 public class QuestionFociTerms {
 
+    public String questionType;
     public List<Pair<IndexedWord, String>> termsWithTypes;
     public String questionWord;
 
-    public QuestionFociTerms(List<Pair<IndexedWord, String>> termsWithTypes, String questionWord) {
+    public QuestionFociTerms(List<Pair<IndexedWord, String>> termsWithTypes, String questionWord, String questionType) {
 
         this.termsWithTypes = termsWithTypes;
         this.questionWord = questionWord;
+        this.questionType = questionType;
     }
 }

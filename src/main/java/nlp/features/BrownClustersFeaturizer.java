@@ -39,7 +39,7 @@ public class BrownClustersFeaturizer extends WordFeaturizer {
     @Override
     boolean doBigrams() {
 
-        return false;
+        return true;
     }
 
     /****************************************************************

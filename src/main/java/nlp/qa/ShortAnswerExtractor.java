@@ -101,6 +101,11 @@ public class ShortAnswerExtractor {
 
         // TODO: run through all the inner extractors; right now using only the generic extraction technique
         String questionCategory = classifier.score(classificationFeaturizer.featurize(question)).get(0).first;
+
+
+        
+
+
         DEPNode result = genericExtract(questionParsed, answerParsed, questionCategory);
         if (result != null)
             return result.getWordForm();

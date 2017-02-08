@@ -21,7 +21,6 @@ import java.nio.file.Paths;
  */
 public class QCFeaturizationPipeline {
 
-    private final static String dependencyModel = "english_UD.gz";
     private final static String browClustersModel = "brown-rcv1.clean.tokenized-CoNLL03.txt-c1000-freq1.txt";
     private final static String wordvecModel = "glove.6B.50d.txt";
     private final static String listDir = "lists";
@@ -34,7 +33,7 @@ public class QCFeaturizationPipeline {
      */
     public QCFeaturizationPipeline(String modelsPath) throws IOException {
 
-        this.extractor = new QuestionFociExtractor(Paths.get(modelsPath, dependencyModel).toString());
+        this.extractor = new QuestionFociExtractor();
 
         LexicalizedFeaturizer lexicalizedFeaturizer = new LexicalizedFeaturizer();
         BrownClusters clusters = BrownClustersFeaturizer.loadClusters(Paths.get(modelsPath, browClustersModel));
@@ -64,6 +63,7 @@ public class QCFeaturizationPipeline {
 
         // merge with the special question word feature
         fromPipeline.mergeWith(new QuestionWordFeaturizer().featurize(qt.questionWord));
+        fromPipeline.mergeWith(new QuestionWordFeaturizer().featurize(qt.questionType));
 
         return fromPipeline;
     }
