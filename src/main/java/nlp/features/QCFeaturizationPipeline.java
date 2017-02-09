@@ -25,8 +25,9 @@ public class QCFeaturizationPipeline {
     private final static String wordvecModel = "glove.6B.50d.txt";
     private final static String listDir = "lists";
 
-    private final QuestionFociExtractor extractor;
+    public final QuestionFociExtractor extractor;
     private final WordFeaturizer pipeline;
+    public final WordVecFeaturizer wordVecFeaturizer;
 
     /****************************************************************
      * Creates the featurization pipeline which loads all the models
@@ -37,7 +38,7 @@ public class QCFeaturizationPipeline {
 
         LexicalizedFeaturizer lexicalizedFeaturizer = new LexicalizedFeaturizer();
         BrownClusters clusters = BrownClustersFeaturizer.loadClusters(Paths.get(modelsPath, browClustersModel));
-        WordVecFeaturizer wordVecFeaturizer = new WordVecFeaturizer(Paths.get(modelsPath, wordvecModel));
+        this.wordVecFeaturizer = new WordVecFeaturizer(Paths.get(modelsPath, wordvecModel));
         ListsFeaturizer listsFeaturizer = new ListsFeaturizer(Paths.get(modelsPath, listDir));
 
         this.pipeline = lexicalizedFeaturizer.
@@ -57,6 +58,10 @@ public class QCFeaturizationPipeline {
 
         // extract the important information from the sentence
         QuestionFociTerms qt = extractor.extractQuestionFociWordsWithType(sentence);
+
+        if (qt.questionWord.isEmpty()) {
+            return null;
+        }
 
         // run through the general pipeline
         SparseFeatureVector fromPipeline = pipeline.featurize(qt.termsWithTypes);
