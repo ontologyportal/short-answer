@@ -14,17 +14,24 @@ import edu.emory.clir.clearnlp.dependency.DEPNode;
 import edu.emory.clir.clearnlp.dependency.DEPTree;
 import edu.emory.clir.clearnlp.srl.SRLTree;
 import edu.emory.clir.clearnlp.util.arc.SRLArc;
+import edu.stanford.nlp.ling.IndexedWord;
+import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.Sets;
 import nlp.features.AnswerExtractionFeaturizer;
 import nlp.features.QCFeaturizationPipeline;
 import nlp.features.SparseFeatureVector;
 import nlp.learning.Scorer;
+import nlp.qa.extractors.*;
 import nlp.semantics.SemanticParser;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static nlp.qa.QuestionsTaxonomy.*;
 
 /**
  * This is a manually set scorer of the features for extracting the answer
@@ -64,6 +71,8 @@ class ManuallySetExtractingScorer implements Scorer {
  */
 public class ShortAnswerExtractor {
 
+    private final static String APPOS = "appos";
+
     private final SemanticParser semanticParser;
 
     private final Scorer classifier;
@@ -93,34 +102,127 @@ public class ShortAnswerExtractor {
      */
     public String extract(String question, String answer) {
 
-        List<Pair<String, Double>> predicted = classifier.score(classificationFeaturizer.featurize(answer));
+        //List<Pair<String, Double>> predicted = classifier.score(classificationFeaturizer.featurize(answer));
 
         // based on the class and semantic roles for both sentence and question - extract the extract
         DEPTree questionParsed = semanticParser.parse(question);
         DEPTree answerParsed = semanticParser.parse(answer);
 
+        DEPNode questionNode = findQuestionWord(questionParsed);
+        DEPNode verbNode = findVerb(questionNode, questionParsed);
+
+        // get a coremap of the answer
+        SemanticGraph depParse = classificationFeaturizer.extractor.parse(answer);
+
         // TODO: run through all the inner extractors; right now using only the generic extraction technique
-        String questionCategory = classifier.score(classificationFeaturizer.featurize(question)).get(0).first;
+        SparseFeatureVector features = classificationFeaturizer.featurize(question);
+        String questionCategory = features == null ? YESNO : classifier.score(features).get(0).first;
 
+        DEPNode genericResult = genericExtract(questionParsed, answerParsed, questionCategory, verbNode);
 
-        
+        String decisionResult = extractWithDecisionTree(question, depParse, answerParsed, genericResult, questionCategory, verbNode);
 
+        if (decisionResult == null) {
 
-        DEPNode result = genericExtract(questionParsed, answerParsed, questionCategory);
-        if (result != null)
-            return result.getWordForm();
+            if (genericResult != null)
+                return genericResult.getWordForm();
 
-        return null;
+            return null;
+        } else return null;
+    }
+
+    private String extractWithDecisionTree(String question, SemanticGraph answerGraph, DEPTree answerParsed,
+                                           DEPNode genericResult, String questionCategory, DEPNode verbNode) {
+
+        List<IndexedWord> result = null;
+
+        // ENTITY
+        if (isCategoryOf(questionCategory, ENTITY)) {
+
+            result = new RelationExtractor(APPOS).extract(answerGraph);
+
+            if (result == null && isCategoryOf(questionCategory, ENTITY, _creative)) {
+                result = new FirstCapSeqExtractor().extract(answerGraph);
+            }
+        }
+
+        // DESCRIPTION
+        if (isCategoryOf(questionCategory, DESCRIPTION)) {
+            if (isCategoryOf(questionCategory, DESCRIPTION, _description) || isCategoryOf(questionCategory, DESCRIPTION, _definition)) {
+                result = new RelationExtractor(APPOS).extract(answerGraph);
+
+                if (result == null) {
+
+                    if (genericResult != null) {
+                        return genericResult.getWordForm();
+                    } else {
+                        result = new RelationExtractor("xcomp").extract(answerGraph);
+                    }
+                }
+            }
+        }
+
+        // HUMAN
+        if (isCategoryOf(questionCategory, HUMAN)) {
+
+            if (isCategoryOf(questionCategory, _description)) {
+                result = new HumDescExtractor().extract(answerGraph);
+            } else {
+
+                if (genericResult.getNamedEntityTag().toLowerCase().equals("person")) {
+                    return genericResult.getWordForm();
+                }
+
+                List<IndexedWord> words = new HumanGenericExtractor().extract(answerGraph).stream().filter(w -> !question.contains(w.word())).collect(Collectors.toList());
+                if (!words.isEmpty())
+                    result = words;
+            }
+        }
+
+        // LOCATION
+        if (isCategoryOf(questionCategory, LOCATION)) {
+
+            result = new LocationExtractor(answerParsed).extract(answerGraph);
+        }
+
+        // NUMERIC
+        if (isCategoryOf(questionCategory, NUMERIC)) {
+
+            if (isCategoryOf(questionCategory, NUMERIC, _count)) {
+
+                result = new NumCountExtractor().extract(answerGraph);
+            }
+
+            if (isCategoryOf(questionCategory, NUMERIC, _date) ||
+                    isCategoryOf(questionCategory, NUMERIC, _period)) {
+
+                result = new NumDateExtractor(answerParsed, classificationFeaturizer.wordVecFeaturizer, verbNode).extract(answerGraph);
+            }
+
+            if (result == null) {
+                result = new GenericNumExtractor().extract(answerGraph);
+            }
+        }
+
+        // YES/NO
+        if (isCategoryOf(questionCategory, YESNO)) {
+
+            result = new YesNoExctractor().extract(answerGraph);
+        }
+
+        if (result != null) {
+            result.sort(Comparator.comparingInt(IndexedWord::index));
+        }
+
+        return result != null ? result.stream().map(IndexedWord::word).reduce((x, y) -> x + " " + y).get() : null;
     }
 
     /****************************************************************
      * makes a generic attempt to extract a short answer given semantic roles labeled graphs
      * and questions category
      */
-    private DEPNode genericExtract(DEPTree questionParsed, DEPTree answerParsed, String questionCategory) {
+    private DEPNode genericExtract(DEPTree questionParsed, DEPTree answerParsed, String questionCategory, DEPNode verbNode) {
 
-        DEPNode questionNode = findQuestionWord(questionParsed);
-        DEPNode verbNode = findVerb(questionNode, questionParsed);
         DEPNode matchedNode = matchSemantics(verbNode, answerParsed);
 
         // featurize all the candidates

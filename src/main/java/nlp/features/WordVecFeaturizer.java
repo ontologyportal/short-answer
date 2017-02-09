@@ -75,7 +75,7 @@ public class WordVecFeaturizer extends WordFeaturizer {
      * @return A feature vector representing the word
      */
     @Override
-    SparseFeatureVector featurize(String word) {
+    public SparseFeatureVector featurize(String word) {
 
         word = word.toLowerCase();
 

@@ -20,14 +20,17 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Demo {
@@ -46,6 +49,7 @@ public class Demo {
         questions.add("What does Kathy want?");
         questions.add("What a car is?");
         questions.add("What is the estimated population of Egypt?");
+        questions.add("Who is a great pet?");
 
         /**********************************************************
          */

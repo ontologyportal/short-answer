@@ -145,6 +145,11 @@ public class SparseFeatureVector implements Serializable {
         return result;
     }
 
+    public double similarity(SparseFeatureVector other) {
+
+        return this.dot(other) / Math.sqrt(this.dot(this) * other.dot(other));
+    }
+
     /****************************************************************
      * @return a string representation of the vector
      */

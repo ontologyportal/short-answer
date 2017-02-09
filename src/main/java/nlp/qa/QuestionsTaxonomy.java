@@ -15,14 +15,13 @@ import java.util.Map;
 
 public class QuestionsTaxonomy {
 
-    private Map<String, String> subcatMap = new HashMap<>();
-
     private final static String ABBREVIATION = "ABBR";
     public final static String DESCRIPTION = "DESC";
     public final static String ENTITY = "ENTY";
     public final static String HUMAN = "HUM";
     public final static String LOCATION = "LOC";
     public final static String NUMERIC = "NUM";
+    public final static String YESNO = "YESNO";
 
     public final static String _abbreviation = "abb";
     public final static String _expression = "exp";
