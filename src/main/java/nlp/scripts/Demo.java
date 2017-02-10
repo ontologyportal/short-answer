@@ -73,14 +73,21 @@ public class Demo {
 
         for (String question : questions) {
 
-            // fetch the candidate
-            String sentence = fetchAnswerSentence(question, reader);
-            String answer = extractor.extract(question, sentence);
-
             System.out.println("**************************************************");
-            System.out.println("Question: " + question);
-            System.out.println("Sentence: " + sentence);
-            System.out.println("Answer: " + answer);
+
+            try {
+                // fetch the candidate
+                String sentence = fetchAnswerSentence(question, reader);
+                String answer = extractor.extract(question, sentence);
+
+                System.out.println("Question: " + question);
+                System.out.println("Sentence: " + sentence);
+                System.out.println("Answer: " + answer);
+            }
+            catch (Exception ex) {
+                System.out.println("Failed on a question: " + question);
+                ex.printStackTrace();
+            }
         }
     }
 
