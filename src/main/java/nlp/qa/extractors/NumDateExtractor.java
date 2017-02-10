@@ -24,22 +24,32 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+/**
+ * This class extracts numeric dates from the graph
+ */
 public class NumDateExtractor extends AnswerExtractor {
 
+    // the dependency tree which is also needed in this extractor
     private final DEPTree depTree;
+
+    // wordvectors needed for this extractor
     private final WordVecFeaturizer featurizer;
-    private final DEPNode verbNode;
+
+    // the closest verb to the question
     private final SparseFeatureVector verbNodeWV;
 
     public NumDateExtractor(DEPTree depTree, WordVecFeaturizer featurizer, DEPNode verbNode) {
+
         this.depTree = depTree;
         this.featurizer = featurizer;
-        this.verbNode = verbNode;
         this.verbNodeWV = featurizer.featurize(verbNode.getWordForm());
     }
 
+    /****************************************************************
+     * @return A list of indexed words which represent the numeric dates
+     *         in the graph
+     */
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
@@ -48,14 +58,16 @@ public class NumDateExtractor extends AnswerExtractor {
 
             return tmp.get().getNode().getDependentList().stream().filter(d -> d.getNamedEntityTag().toLowerCase().
                     contains("date")).map(this::dn2iw).sorted(Comparator.comparingInt(IndexedWord::index)).collect(Collectors.toList());
-        } else {
+        }
+        else {
 
             List<IndexedWord> dates = Arrays.stream(depTree.toNodeArray()).filter(n -> n.getNamedEntityTag().toLowerCase().contains("date")).map(this::dn2iw).
                     sorted(Comparator.comparingInt(IndexedWord::index)).collect(Collectors.toList());
 
             if (!dates.isEmpty()) {
                 return dates;
-            } else {
+            }
+            else {
 
                 Optional<Pair<DEPNode, Double>> first = Arrays.stream(depTree.toNodeArray()).map(n -> new Pair<>(n, featurizer.featurize(n.getWordForm()).
                         similarity(verbNodeWV))).sorted(Comparator.comparingDouble(s -> s.second)).findFirst();
@@ -79,6 +91,7 @@ public class NumDateExtractor extends AnswerExtractor {
             }
 
         }
+
         return null;
     }
 }

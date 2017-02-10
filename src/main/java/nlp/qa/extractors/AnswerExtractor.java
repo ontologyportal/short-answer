@@ -15,8 +15,6 @@ import edu.emory.clir.clearnlp.dependency.DEPTree;
 import edu.emory.clir.clearnlp.util.arc.SRLArc;
 import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.semgraph.SemanticGraph;
-import edu.stanford.nlp.util.CoreMap;
-import nlp.semantics.SemanticParser;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,19 +22,34 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * This class represents a base short answer extractor
+ */
 public abstract class AnswerExtractor {
 
+    /****************************************************************
+     * @return A list of indexed words which are the short answer
+     *         based on the graph
+     */
     public abstract List<IndexedWord> extract(SemanticGraph answerGraph);
 
+    /****************************************************************
+     * @return a list of nodes which represent the sentence from the graph
+     */
     List<IndexedWord> sentenceWords(SemanticGraph graph) {
 
         Collection<IndexedWord> nodes = graph.getRoots();
-        List<IndexedWord> decendants = nodes.stream().map(r -> graph.descendants(r)).flatMap(x -> x.stream()).collect(Collectors.toList());
+        List<IndexedWord> decendants = nodes.stream().map(r ->
+                graph.descendants(r)).flatMap(x -> x.stream()).collect(Collectors.toList());
         nodes.addAll(decendants);
-        List<IndexedWord> sortedWords = nodes.stream().sorted(Comparator.comparingInt(n -> n.index())).collect(Collectors.toList());
+        List<IndexedWord> sortedWords = nodes.stream().
+                sorted(Comparator.comparingInt(n -> n.index())).collect(Collectors.toList());
         return sortedWords;
     }
 
+    /****************************************************************
+     * @return Wrapped raw string terms as indexed words
+     */
     List<IndexedWord> wordsToIndexedWords(List<String> terms) {
 
         List<IndexedWord> words = new ArrayList<>();
@@ -51,13 +64,20 @@ public abstract class AnswerExtractor {
         return words;
     }
 
+    /****************************************************************
+     * @return an indexed word from a dependency node (clearnlp to corenlp)
+     */
     IndexedWord dn2iw(DEPNode n) {
+
         IndexedWord w = new IndexedWord();
         w.setWord(n.getWordForm());
         w.setIndex(n.getID());
         return w;
     }
 
+    /****************************************************************
+     * @return All semantic role labels from a tree
+     */
     List<SRLArc> getAllSRLArcs(DEPTree tree) {
 
         List<SRLArc> results = new ArrayList<>();

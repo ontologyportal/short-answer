@@ -20,21 +20,22 @@ import nlp.learning.PassiveAggressiveClassifier;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-public class QuestionClassifierTrainingScript {
+/**
+ * A script that trains the questions classifier
+ */
+public class TrainQuestionClassifier {
 
     public static void main(String[] args) throws IOException {
 
         double C = Double.parseDouble(args[0]);
 
-        String modelsPath = args[1]; //"/Users/yan/scratch/qa/question-classification/models";
-        String questionsDataPath = args[2]; //"/Users/yan/scratch/qa/question-classification/data";
+        String modelsPath = args[1];
+        String questionsDataPath = args[2];
 
         QCFeaturizationPipeline pipeline = new QCFeaturizationPipeline(modelsPath);
 
         QCDataReader reader = new QCDataReader(Paths.get(questionsDataPath, "train"),
                 Paths.get(questionsDataPath, "test"), false, pipeline, "ISO-8859-1");
-
-        //reader.getTrain().dataPoints.forEach(System.out::println);
 
         PassiveAggressiveClassifier pa = new PassiveAggressiveClassifier(C, reader.getLabels(), false);
 

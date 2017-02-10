@@ -12,27 +12,37 @@ package nlp.qa.extractors;
 
 import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.semgraph.SemanticGraph;
-import edu.stanford.nlp.trees.GrammaticalRelation;
 import edu.stanford.nlp.trees.TypedDependency;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A generic graph relation extractor
+ */
 public class RelationExtractor extends AnswerExtractor {
 
+    // the name of the relation to extract
     private final String rel;
 
     public RelationExtractor(String rel) {
+
         this.rel = rel;
     }
 
     /****************************************************************
-     * @return All the appositives
+     * @return List of indexed words which are the dependents in the relation
      */
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
-        return answerGraph.typedDependencies().stream().filter(d ->
+        List<IndexedWord> relations = answerGraph.typedDependencies().stream().filter(d ->
                 d.reln().getShortName().equals(rel)).map(TypedDependency::dep).collect(Collectors.toList());
+
+        if (!relations.isEmpty()) {
+            return relations;
+        }
+
+        return null;
     }
 }

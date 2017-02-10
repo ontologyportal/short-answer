@@ -16,6 +16,10 @@ import nlp.features.SparseFeatureVector;
 
 import java.util.List;
 
+/**
+ * Returns a list of classes and scores for a datapoint,
+ * in some sense representing a ranker/classifier
+ */
 public interface Scorer {
 
     List<Pair<String, Double>> score(SparseFeatureVector dataPoint);

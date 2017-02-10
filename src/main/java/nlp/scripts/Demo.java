@@ -20,17 +20,15 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Demo {
@@ -54,9 +52,10 @@ public class Demo {
         /**********************************************************
          */
 
-        String indexDir = args[0]; //"/Users/yan/scratch/short-answer-data/index";
-        String modelsPath = args[1]; //"/Users/yan/scratch/short-answer-data/models";
-        String classifierModel = args[2]; //"question-classifier.pa770.ser"
+        String indexDir = args[0];
+        String modelsPath = args[1];
+        String classifierModel = args[2];
+        String questionsFilePath = args.length > 3 ? args[3]: null;
 
         Directory dir = FSDirectory.open(Paths.get(indexDir));
         IndexReader reader = DirectoryReader.open(dir);
@@ -64,6 +63,13 @@ public class Demo {
         PassiveAggressiveClassifier classifier = PassiveAggressiveClassifier.load(Paths.get(modelsPath, classifierModel));
         QCFeaturizationPipeline featurizer = new QCFeaturizationPipeline(modelsPath);
         ShortAnswerExtractor extractor = new ShortAnswerExtractor(new SemanticParser(), classifier, featurizer);
+
+        // load question from the questions path if it is not null
+        if (questionsFilePath != null) {
+
+            questions.clear();
+            Files.lines(Paths.get(questionsFilePath)).forEach(line -> questions.add(line));
+        }
 
         for (String question : questions) {
 

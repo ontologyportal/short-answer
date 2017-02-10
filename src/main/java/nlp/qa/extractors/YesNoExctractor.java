@@ -13,8 +13,14 @@ package nlp.qa.extractors;
 import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+/**
+ * A simplistic yes/no extractor based on negativity words
+ */
 public class YesNoExctractor extends AnswerExtractor {
 
     private final IndexedWord no;
@@ -22,6 +28,7 @@ public class YesNoExctractor extends AnswerExtractor {
     Set<String> negationWords = new HashSet<String>();
 
     public YesNoExctractor() {
+
         negationWords.add("no");
         negationWords.add("not");
         negationWords.add("n't");

@@ -27,9 +27,7 @@ import nlp.semantics.SemanticParser;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static nlp.qa.QuestionsTaxonomy.*;
 
@@ -43,8 +41,9 @@ class ManuallySetExtractingScorer implements Scorer {
     public ManuallySetExtractingScorer() {
 
         // define the weights here
+
         // under current manual approach, all those features represent some negative
-        // effect which should be penalized
+        // effect according to which candidates with those features should be penalized
         weightsVector = new SparseFeatureVector();
         weightsVector.add(AnswerExtractionFeaturizer.featureName(AnswerExtractionFeaturizer.ARGM), -1.0);
         weightsVector.add(AnswerExtractionFeaturizer.featureName(AnswerExtractionFeaturizer.PREP), -1.0);
@@ -114,7 +113,6 @@ public class ShortAnswerExtractor {
         // get a coremap of the answer
         SemanticGraph depParse = classificationFeaturizer.extractor.parse(answer);
 
-        // TODO: run through all the inner extractors; right now using only the generic extraction technique
         SparseFeatureVector features = classificationFeaturizer.featurize(question);
         String questionCategory = features == null ? YESNO : classifier.score(features).get(0).first;
 
@@ -122,15 +120,18 @@ public class ShortAnswerExtractor {
 
         String decisionResult = extractWithDecisionTree(question, depParse, answerParsed, genericResult, questionCategory, verbNode);
 
-        if (decisionResult == null) {
+        if (decisionResult != null)
+            return decisionResult;
 
-            if (genericResult != null)
-                return genericResult.getWordForm();
+        if (genericResult != null)
+            return genericResult.getWordForm();
 
-            return null;
-        } else return null;
+        return null;
     }
 
+    /****************************************************************
+     * @return The short answer according to the decision tree rules
+     */
     private String extractWithDecisionTree(String question, SemanticGraph answerGraph, DEPTree answerParsed,
                                            DEPNode genericResult, String questionCategory, DEPNode verbNode) {
 
@@ -155,7 +156,8 @@ public class ShortAnswerExtractor {
 
                     if (genericResult != null) {
                         return genericResult.getWordForm();
-                    } else {
+                    }
+                    else {
                         result = new RelationExtractor("xcomp").extract(answerGraph);
                     }
                 }
@@ -166,14 +168,19 @@ public class ShortAnswerExtractor {
         if (isCategoryOf(questionCategory, HUMAN)) {
 
             if (isCategoryOf(questionCategory, _description)) {
+
                 result = new HumDescExtractor().extract(answerGraph);
-            } else {
+            }
+            else {
 
                 if (genericResult.getNamedEntityTag().toLowerCase().equals("person")) {
+
                     return genericResult.getWordForm();
                 }
 
-                List<IndexedWord> words = new HumanGenericExtractor().extract(answerGraph).stream().filter(w -> !question.contains(w.word())).collect(Collectors.toList());
+                List<IndexedWord> words = new HumanGenericExtractor().extract(answerGraph).stream().filter(w ->
+                        !question.contains(w.word())).collect(Collectors.toList());
+
                 if (!words.isEmpty())
                     result = words;
             }
@@ -241,7 +248,7 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return
+     * @return semantic arcs
      */
     private List<SRLArc> getSemanticArcs(DEPNode node, DEPTree tree) {
 
@@ -252,7 +259,7 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return
+     * @return finds a node
      */
     private Pair<DEPNode, Integer> findNode(DEPNode target, DEPNode source, int depth, Function<DEPNode, Boolean> predicate, DEPTree tree) {
 
@@ -265,7 +272,7 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return
+     * @return find a verb
      */
     private DEPNode findVerb(DEPNode questionNode, DEPTree tree) {
 
@@ -282,7 +289,7 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return
+     * @return finds a question word
      */
     private DEPNode findQuestionWord(DEPTree questionTree) {
 
@@ -291,7 +298,7 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return
+     * @return score which represents a match between two lists of semantic arcs
      */
     private double score(List<SRLArc> l1, List<SRLArc> l2) {
 
@@ -302,18 +309,21 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return
+     * @return Returns the head of the matched trees
      */
     private DEPNode matchSemantics(DEPNode target, DEPTree tree) {
 
         List<SRLArc> targetArcs = getSemanticArcs(target, tree);
         List<Pair<DEPNode, Double>> scoredNodes = new ArrayList<>();
+
         for (DEPNode n : tree) {
             scoredNodes.add(new Pair<>(n, score(targetArcs, getSemanticArcs(n, tree))));
         }
+
         List<Pair<DEPNode, Double>> sorted = scoredNodes.stream().sorted(Comparator.comparingDouble(n -> -n.second)).collect(Collectors.toList());
         if (sorted.isEmpty() || (sorted.size() > 1 && sorted.get(0).second == sorted.get(1).second))
             return null;
+
         return sorted.get(0).first;
     }
 }

@@ -12,26 +12,22 @@ package nlp.qa;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.IndexedWord;
-import edu.stanford.nlp.parser.nndep.DependencyParser;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations;
-import edu.stanford.nlp.trees.GrammaticalStructure;
-import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.PropertiesUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
- * This class extracs important words from a question later on to be used to featurize
+ * This class extracts head words from a question later on to be used to featurize
  * the sentence for learning a classifier.
- * TODO: more work is needed in order to replicate the exact
- * approach in: http://www.adampease.org/professional/GlobalWordNet2016.pdf
+ *
+ * http://www.adampease.org/professional/GlobalWordNet2016.pdf
  */
 public class QuestionFociExtractor {
 
@@ -48,7 +44,8 @@ public class QuestionFociExtractor {
     public QuestionFociExtractor() {
 
         // Create the Stanford CoreNLP pipeline
-        Properties props = PropertiesUtils.asProperties("annotators", "tokenize,ssplit,pos,lemma,ner,depparse",
+        Properties props = PropertiesUtils.asProperties("annotators",
+                "tokenize,ssplit,pos,lemma,ner,depparse",
                 "ssplit.isOneSentence", "true",
                 "tokenize.language", "en");
 
@@ -115,9 +112,6 @@ public class QuestionFociExtractor {
             return new QuestionFociTerms(results, "", "");
         }
 
-//        System.out.println(graph);
-//        System.out.println("question word: " + questionWord);
-
         String questionWordString = questionWord.word().toLowerCase();
         String questionType = "NONE";
 
@@ -156,13 +150,14 @@ public class QuestionFociExtractor {
                 typeBrandKind.contains(w.first.word().toLowerCase())).collect(Collectors.toList());
 
         typeBrandResults.forEach(w -> graph.getChildList(w.first).stream().
-                        filter(QuestionFociExtractor::isSuitableTerm).forEach(c -> results.add(new Pair<>(c, "FOCUS"))));
+                filter(QuestionFociExtractor::isSuitableTerm).forEach(c -> results.add(new Pair<>(c, "FOCUS"))));
 
         // entailment
         if (rootVerb.isPresent() && entailment.contains(rootVerb.get().word().toLowerCase())) {
             graph.getChildList(rootVerb.get()).stream().filter(QuestionFociExtractor::isSuitableTerm).forEach(w ->
                     results.add(new Pair<>(w, "FOCUS")));
-        } else {
+        }
+        else {
 
             // children of question word
             graph.getChildList(questionWord).stream().filter(QuestionFociExtractor::isSuitableTerm).forEach(w ->
@@ -171,11 +166,7 @@ public class QuestionFociExtractor {
             // children of a verb which is a child of question word
             graph.getChildList(questionWord).stream().filter(c -> c.tag().startsWith("V")).forEach(v ->
                     graph.getChildList(v).stream().filter(QuestionFociExtractor::isSuitableTerm).forEach(w ->
-            results.add(new Pair<>(w, "FOCUS"))));
-        }
-
-        if (results.stream().allMatch(w -> w.first.word() == null)) {
-            System.out.println("All words are null in: " + sentence);
+                            results.add(new Pair<>(w, "FOCUS"))));
         }
 
         return new QuestionFociTerms(results.stream().filter(d -> d.first.word() != null).collect(Collectors.toList()),

@@ -34,6 +34,7 @@ public class WordVecFeaturizer extends WordFeaturizer {
     public WordVecFeaturizer(Path path) throws IOException {
 
         Files.lines(path).forEach(line -> {
+
             String[] vals = line.split(" ");
             // creating a new instance to generate a small footprint in RAM
             String key = new String(vals[0]);

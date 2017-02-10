@@ -13,27 +13,25 @@ package nlp.qa.extractors;
 import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * A human description extractor
+ */
 public class HumDescExtractor extends AnswerExtractor {
 
+    // patterns used during the extraction
     private final Pattern firstPattern = Pattern.compile("/NNP ,/[^ ]+ ([^,]+),");
     private final Pattern secondPattern = Pattern.compile("([^ ]+/JJ .+?) (.+/NNP)+");
     private final Pattern thirdPattern = Pattern.compile("/NNP (was|were|is|are|[^ ]+ be)/[^ ]+ (.+)");
 
-    private String removePOS(String withPOS) {
-
-        StringBuilder res = new StringBuilder();
-        Arrays.stream(withPOS.split(" ")).map(t -> t.split("/")[0]).forEach(w -> res.append(" " + w));
-
-        return res.substring(1);
-    }
-
+    /****************************************************************
+     * @return A list of indexed words which represent the human description
+     *         from the graph
+     */
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
@@ -44,14 +42,17 @@ public class HumDescExtractor extends AnswerExtractor {
         StringBuilder b = new StringBuilder();
         sentenceWords.stream().map(w -> String.format("%s/%s", w.word(), w.tag())).forEach(s -> b.append(" " + s));
 
+        // going through all the patterns
         Matcher m1 = firstPattern.matcher(b.toString());
         if (m1.find()) {
             results = m1.group(1);
-        } else {
+        }
+        else {
             Matcher m2 = secondPattern.matcher(b.toString());
             if (m2.find()) {
                 results = m2.group(1);
-            } else {
+            }
+            else {
                 Matcher m3 = thirdPattern.matcher(b.toString());
                 if (m3.find()) {
                     results = m3.group(2);
@@ -65,5 +66,16 @@ public class HumDescExtractor extends AnswerExtractor {
         String terms[] = removePOS(results).split(" ");
         List<IndexedWord> words = wordsToIndexedWords(Arrays.asList(terms));
         return words;
+    }
+
+    /****************************************************************
+     * @return Removes the part of speech information from the phrase
+     */
+    private String removePOS(String withPOS) {
+
+        StringBuilder res = new StringBuilder();
+        Arrays.stream(withPOS.split(" ")).map(t -> t.split("/")[0]).forEach(w -> res.append(" " + w));
+
+        return res.substring(1);
     }
 }

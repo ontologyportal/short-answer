@@ -10,9 +10,10 @@
 
 package nlp.qa;
 
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * Question taxonomy according to:
+ * http://cogcomp.cs.illinois.edu/Data/QA/QC/definition.html
+ */
 public class QuestionsTaxonomy {
 
     private final static String ABBREVIATION = "ABBR";
@@ -71,11 +72,20 @@ public class QuestionsTaxonomy {
     public final static String _size = "volsize";
     public final static String _weight = "weight";
 
+    /****************************************************************
+     * @return whether the candidate is of a particular category
+     */
     public static boolean isCategoryOf(String candidate, String category) {
+
         return candidate.contains(category);
     }
 
+    /****************************************************************
+     * @return whether the candidate is of a particular gross category
+     *         and a particular fine category
+     */
     public static boolean isCategoryOf(String candidate, String category, String subCategory) {
+
         return candidate.contains(String.format("%s:%s", category, subCategory));
     }
 }

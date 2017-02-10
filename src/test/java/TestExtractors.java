@@ -8,9 +8,7 @@
  *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
  */
 
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
-import edu.stanford.nlp.util.PropertiesUtils;
 import nlp.qa.QuestionFociExtractor;
 import nlp.qa.extractors.HumDescExtractor;
 import org.junit.Assert;

@@ -20,6 +20,14 @@ public class HumanGenericExtractor extends AnswerExtractor {
 
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
-        return sentenceWords(answerGraph).stream().filter(w -> w.ner().toLowerCase().contains("person")).collect(Collectors.toList());
+
+        List<IndexedWord> person = sentenceWords(answerGraph).stream().filter(w ->
+                w.ner().toLowerCase().contains("person")).collect(Collectors.toList());
+
+        if (!person.isEmpty()) {
+            return person;
+        }
+
+        return null;
     }
 }
