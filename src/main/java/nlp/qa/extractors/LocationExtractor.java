@@ -24,10 +24,12 @@ public class LocationExtractor extends AnswerExtractor {
     private final DEPTree answerParsed;
 
     public LocationExtractor(DEPTree answerParsed) {
+
         this.answerParsed = answerParsed;
     }
 
     private List<String> extractSemanticRoles(String rolePattern) {
+
         return Arrays.stream(answerParsed.toNodeArray()).map(n -> n.getSemanticHeadArcList()).flatMap(x -> x.stream()).filter(a -> {
             String l = a.getLabel().toLowerCase();
             return Pattern.compile(rolePattern).matcher(l).find();
@@ -42,26 +44,32 @@ public class LocationExtractor extends AnswerExtractor {
         if (!words1.isEmpty()) {
 
             return wordsToIndexedWords(words1);
-        } else {
+        }
+        else {
 
             List<IndexedWord> words2 = sentenceWords(answerGraph).stream().filter(n -> n.ner().toLowerCase().contains("loc")).collect(Collectors.toList());
 
             if (!words2.isEmpty()) {
 
                 return words2;
-            } else {
+            }
+            else {
 
                 List<String> words3 = extractSemanticRoles("a2|a4");
 
                 if (!words3.isEmpty()) {
 
                     return wordsToIndexedWords(words3);
-                } else {
+                }
+                else {
 
                     List<String> words4 = extractSemanticRoles("a0|a1");
-                    return wordsToIndexedWords(words4);
+                    if (!words4.isEmpty())
+                        return wordsToIndexedWords(words4);
                 }
             }
         }
+
+        return null;
     }
 }

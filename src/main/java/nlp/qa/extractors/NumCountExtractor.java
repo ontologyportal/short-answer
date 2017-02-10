@@ -16,8 +16,15 @@ import edu.stanford.nlp.semgraph.SemanticGraph;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * A number count extractor
+ */
 public class NumCountExtractor extends AnswerExtractor {
 
+    /****************************************************************
+     * @return A list of indexed words representing numeric counts
+     *         from the graph
+     */
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
@@ -27,6 +34,7 @@ public class NumCountExtractor extends AnswerExtractor {
         }
 
         Optional<IndexedWord> cd = sentenceWords(answerGraph).stream().filter(w -> w.tag().toLowerCase().equals("cd")).findAny();
+
         return cd.map(answerGraph::getChildList).orElse(null);
     }
 }

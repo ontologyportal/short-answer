@@ -15,21 +15,31 @@ import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.trees.TypedDependency;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * A generic number extractor
+ */
 public class GenericNumExtractor extends AnswerExtractor {
 
+    /****************************************************************
+     * @return A list of indexed words representing the number tokens
+     *         from the graph
+     */
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
         List<IndexedWord> sentenceWords = sentenceWords(answerGraph);
-        List<IndexedWord> words = sentenceWords.stream().filter(n -> n.tag().toLowerCase().contains("cd")).collect(Collectors.toList());
+        List<IndexedWord> words = sentenceWords.stream().filter(n -> n.tag().
+                toLowerCase().contains("cd")).collect(Collectors.toList());
+
         if (!words.isEmpty()) {
             return words;
         }
+
         List<TypedDependency> num = answerGraph.typedDependencies().stream().filter(d -> d.reln().getShortName().toLowerCase().
                 contains("num")).collect(Collectors.toList());
+
         if (!num.isEmpty()) {
             return num.stream().map(t -> t.dep()).collect(Collectors.toList());
         }
