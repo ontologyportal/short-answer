@@ -48,6 +48,7 @@ public class Demo {
         questions.add("What a car is?");
         questions.add("What is the estimated population of Egypt?");
         questions.add("Who is a great pet?");
+        questions.add("Where does the word otter derive from?");
 
         /**********************************************************
          */
@@ -68,19 +69,21 @@ public class Demo {
         if (questionsFilePath != null) {
 
             questions.clear();
-            Files.lines(Paths.get(questionsFilePath)).forEach(line -> questions.add(line));
+            Files.lines(Paths.get(questionsFilePath)).forEach(questions::add);
         }
 
         for (String question : questions) {
 
             System.out.println("**************************************************");
 
+            System.out.println("Question: " + question);
+
             try {
                 // fetch the candidate
                 String sentence = fetchAnswerSentence(question, reader);
                 String answer = extractor.extract(question, sentence);
 
-                System.out.println("Question: " + question);
+
                 System.out.println("Sentence: " + sentence);
                 System.out.println("Answer: " + answer);
             }

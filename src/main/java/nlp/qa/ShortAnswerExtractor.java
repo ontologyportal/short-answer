@@ -28,6 +28,7 @@ import nlp.semantics.SemanticParser;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static nlp.qa.QuestionsTaxonomy.*;
 
@@ -107,8 +108,8 @@ public class ShortAnswerExtractor {
         DEPTree questionParsed = semanticParser.parse(question);
         DEPTree answerParsed = semanticParser.parse(answer);
 
-        DEPNode questionNode = findQuestionWord(questionParsed);
-        DEPNode verbNode = findVerb(questionNode, questionParsed);
+        //DEPNode questionNode = findQuestionWord(questionParsed);
+        DEPNode verbNode = findVerb(questionParsed);
 
         // get a coremap of the answer
         SemanticGraph depParse = classificationFeaturizer.extractor.parse(answer);
@@ -116,9 +117,12 @@ public class ShortAnswerExtractor {
         SparseFeatureVector features = classificationFeaturizer.featurize(question);
         String questionCategory = features == null ? YESNO : classifier.score(features).get(0).first;
 
+        System.out.println(questionCategory);
+
         DEPNode genericResult = genericExtract(questionParsed, answerParsed, questionCategory, verbNode);
 
-        String decisionResult = extractWithDecisionTree(question, depParse, answerParsed, genericResult, questionCategory, verbNode);
+        String decisionResult = extractWithDecisionTree(question, depParse, answerParsed, questionParsed,
+                genericResult, questionCategory, verbNode);
 
         if (decisionResult != null)
             return decisionResult;
@@ -133,7 +137,7 @@ public class ShortAnswerExtractor {
      * @return The short answer according to the decision tree rules
      */
     private String extractWithDecisionTree(String question, SemanticGraph answerGraph, DEPTree answerParsed,
-                                           DEPNode genericResult, String questionCategory, DEPNode verbNode) {
+                                           DEPTree questionParsed, DEPNode genericResult, String questionCategory, DEPNode verbNode) {
 
         List<IndexedWord> result = null;
 
@@ -189,7 +193,7 @@ public class ShortAnswerExtractor {
         // LOCATION
         if (isCategoryOf(questionCategory, LOCATION)) {
 
-            result = new LocationExtractor(answerParsed).extract(answerGraph);
+            result = new LocationExtractor(answerParsed, questionParsed).extract(answerGraph);
         }
 
         // NUMERIC
@@ -259,33 +263,22 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
-     * @return finds a node
-     */
-    private Pair<DEPNode, Integer> findNode(DEPNode target, DEPNode source, int depth, Function<DEPNode, Boolean> predicate, DEPTree tree) {
-
-        if (predicate.apply(target)) return new Pair<>(source != null ? source : target, depth);
-        for (SRLArc arc : getSemanticArcs(target, tree)) {
-            Pair<DEPNode, Integer> verb = findNode(arc.getNode(), source, depth + 1, predicate, tree);
-            if (verb != null) return verb;
-        }
-        return null;
-    }
-
-    /****************************************************************
      * @return find a verb
      */
-    private DEPNode findVerb(DEPNode questionNode, DEPTree tree) {
+    private DEPNode findVerb(DEPTree tree) {
 
-        Pair<DEPNode, Integer> verb1 = findNode(questionNode, null, 0, n -> n.getPOSTag().startsWith("V"), tree);
-        List<Pair<DEPNode, Integer>> res = new ArrayList<>();
-        for (DEPNode n : tree) {
-            if (n.getPOSTag().startsWith("V")) {
-                Pair<DEPNode, Integer> node = findNode(n, n, 0, x -> x.equals(questionNode), tree);
-                if (node != null) res.add(node);
-            }
+        // find the question word and the nearest verb
+        DEPNode questionWord = findQuestionWord(tree);
+
+        if (questionWord != null) {
+
+            return Arrays.stream(tree.toNodeArray()).filter(n -> n.getPOSTag().toLowerCase().startsWith("v")).
+                    sorted(Comparator.comparingInt(n -> Math.abs(questionWord.getID() - n.getID()))).findFirst().get();
         }
-        if (verb1 != null) res.add(verb1);
-        return res.stream().min(Comparator.comparingInt(x -> x.second)).orElse(new Pair<>(null, 0)).first;
+
+        // if no question word, then just the first verb
+        return Arrays.stream(tree.toNodeArray()).filter(n -> n.getPOSTag().toLowerCase().startsWith("v")).
+                sorted(Comparator.comparingInt(n -> n.getID())).findFirst().get();
     }
 
     /****************************************************************
@@ -293,8 +286,15 @@ public class ShortAnswerExtractor {
      */
     private DEPNode findQuestionWord(DEPTree questionTree) {
 
-        return Arrays.stream(questionTree.toNodeArray()).filter(n ->
-                QuestionFociExtractor.questionWords.contains(n.getWordForm().toLowerCase())).findFirst().get();
+        List<DEPNode> questionWords = Arrays.stream(questionTree.toNodeArray()).filter(n ->
+                QuestionFociExtractor.questionWords.contains(n.getWordForm().toLowerCase())).
+                sorted(Comparator.comparingInt(n -> n.getID())).collect(Collectors.toList());
+
+        if (!questionWords.isEmpty()) {
+            return questionWords.get(0);
+        }
+
+        return null;
     }
 
     /****************************************************************

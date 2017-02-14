@@ -47,6 +47,9 @@ brown-clusters, word vectors, and gazetteers. They all can be found in the model
 
 The trained model is the questions classifier, which uses all those features.
 
+NOTE: glove.6B.50d.txt.gz is not included beacause of the size and should be downloaded from: http://nlp.stanford.edu/projects/glove/
+
+
 Question Classifier
 ===================
 
