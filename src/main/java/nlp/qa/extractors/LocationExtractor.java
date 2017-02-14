@@ -22,24 +22,33 @@ import java.util.stream.Collectors;
 public class LocationExtractor extends AnswerExtractor {
 
     private final DEPTree answerParsed;
+    private final DEPTree questionParsed;
 
-    public LocationExtractor(DEPTree answerParsed) {
+    public LocationExtractor(DEPTree answerParsed, DEPTree questionParsed) {
 
         this.answerParsed = answerParsed;
+        this.questionParsed = questionParsed;
     }
 
     private List<String> extractSemanticRoles(String rolePattern) {
 
-        return Arrays.stream(answerParsed.toNodeArray()).map(n -> n.getSemanticHeadArcList()).flatMap(x -> x.stream()).filter(a -> {
+        List<String> result = Arrays.stream(answerParsed.toNodeArray()).map(n ->
+                n.getSemanticHeadArcList()).flatMap(x -> x.stream()).filter(a -> {
             String l = a.getLabel().toLowerCase();
-            return Pattern.compile(rolePattern).matcher(l).find();
+            return Pattern.compile(rolePattern).matcher(l).find() &&
+                    !Arrays.stream(questionParsed.toNodeArray()).anyMatch(w ->
+                            w.getLemma().toLowerCase().equals(a.getNode().getLemma().toLowerCase()));
         }).map(a -> a.getNode().getWordForm()).collect(Collectors.toList());
+
+        System.out.println(result + ":" + rolePattern);
+
+        return result;
     }
 
     @Override
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
-        List<String> words1 = extractSemanticRoles("loc|gol|dir");
+        List<String> words1 = extractSemanticRoles(".*loc.*|.*gol.*|.*dir.*");
 
         if (!words1.isEmpty()) {
 
@@ -47,7 +56,8 @@ public class LocationExtractor extends AnswerExtractor {
         }
         else {
 
-            List<IndexedWord> words2 = sentenceWords(answerGraph).stream().filter(n -> n.ner().toLowerCase().contains("loc")).collect(Collectors.toList());
+            List<IndexedWord> words2 = sentenceWords(answerGraph).stream().filter(n ->
+                    n.ner().toLowerCase().contains("loc")).collect(Collectors.toList());
 
             if (!words2.isEmpty()) {
 
