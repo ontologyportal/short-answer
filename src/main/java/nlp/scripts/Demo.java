@@ -83,11 +83,11 @@ public class Demo {
             QCFeaturizationPipeline featurizer = new QCFeaturizationPipeline(modelsPath);
             ShortAnswerExtractor extractor = new ShortAnswerExtractor(new SemanticParser(), classifier, featurizer);
 
-        // load question from the questions path if it is not null
-        if (questionsFilePath != null) {
-            questions.clear();
-            Files.lines(Paths.get(questionsFilePath)).forEach(questions::add);
-        }
+            // load question from the questions path if it is not null
+            if (questionsFilePath != null) {
+                questions.clear();
+                Files.lines(Paths.get(questionsFilePath)).forEach(questions::add);
+            }
 
             for (String question : questions) {
                 System.out.println("**************************************************");
@@ -97,10 +97,10 @@ public class Demo {
                 System.out.println("Sentence: " + sentence);
                 System.out.println("Answer: " + answer);
             }
-            catch (Exception ex) {
-                System.out.println("Failed on a question: " + question);
-                ex.printStackTrace();
-            }
+        }
+        catch (Exception ex) {
+            System.out.println("Failed on a question: " + question);
+            ex.printStackTrace();
         }
     }
 
