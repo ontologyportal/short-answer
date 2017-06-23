@@ -28,11 +28,10 @@ import nlp.semantics.SemanticParser;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static nlp.qa.QuestionsTaxonomy.*;
 
-/**
+/****************************************************************
  * This is a manually set scorer of the features for extracting the answer
  */
 class ManuallySetExtractingScorer implements Scorer {
@@ -66,21 +65,16 @@ class ManuallySetExtractingScorer implements Scorer {
     }
 }
 
-/**
+/****************************************************************
  *
  */
 public class ShortAnswerExtractor {
 
     private final static String APPOS = "appos";
-
     private final SemanticParser semanticParser;
-
     private final Scorer classifier;
-
     private final QCFeaturizationPipeline classificationFeaturizer;
-
     private final Scorer extractingScorer;
-
     private final AnswerExtractionFeaturizer extractingFeaturizer;
 
     /****************************************************************
@@ -126,10 +120,8 @@ public class ShortAnswerExtractor {
 
         if (decisionResult != null)
             return decisionResult;
-
         if (genericResult != null)
             return genericResult.getWordForm();
-
         return null;
     }
 
@@ -143,9 +135,7 @@ public class ShortAnswerExtractor {
 
         // ENTITY
         if (isCategoryOf(questionCategory, ENTITY)) {
-
             result = new RelationExtractor(APPOS).extract(answerGraph);
-
             if (result == null && isCategoryOf(questionCategory, ENTITY, _creative)) {
                 result = new FirstCapSeqExtractor().extract(answerGraph);
             }
@@ -155,9 +145,7 @@ public class ShortAnswerExtractor {
         if (isCategoryOf(questionCategory, DESCRIPTION)) {
             if (isCategoryOf(questionCategory, DESCRIPTION, _description) || isCategoryOf(questionCategory, DESCRIPTION, _definition)) {
                 result = new RelationExtractor(APPOS).extract(answerGraph);
-
                 if (result == null) {
-
                     if (genericResult != null) {
                         return genericResult.getWordForm();
                     }
@@ -170,46 +158,39 @@ public class ShortAnswerExtractor {
 
         // HUMAN
         if (isCategoryOf(questionCategory, HUMAN)) {
-
             if (isCategoryOf(questionCategory, _description)) {
-
                 result = new HumDescExtractor().extract(answerGraph);
             }
             else {
-
                 if (genericResult.getNamedEntityTag().toLowerCase().equals("person")) {
-
                     return genericResult.getWordForm();
                 }
-
-                List<IndexedWord> words = new HumanGenericExtractor().extract(answerGraph).stream().filter(w ->
+                //System.out.println("ShortAnswerExtractor.extractWithDecisionTree(): " + answerGraph);
+                //System.out.println("ShortAnswerExtractor.extractWithDecisionTree(): " + question);
+                List<IndexedWord> words = new HumanGenericExtractor().extract(answerGraph);
+                if (words != null)
+                    words = words.stream().filter(w ->
                         !question.contains(w.word())).collect(Collectors.toList());
-
-                if (!words.isEmpty())
+                if (words != null && !words.isEmpty())
                     result = words;
             }
         }
 
         // LOCATION
         if (isCategoryOf(questionCategory, LOCATION)) {
-
-            result = new LocationExtractor(answerParsed, questionParsed).extract(answerGraph);
+            result = new LocationExtractor(answerParsed,questionParsed).extract(answerGraph);
         }
 
         // NUMERIC
         if (isCategoryOf(questionCategory, NUMERIC)) {
 
             if (isCategoryOf(questionCategory, NUMERIC, _count)) {
-
                 result = new NumCountExtractor().extract(answerGraph);
             }
-
             if (isCategoryOf(questionCategory, NUMERIC, _date) ||
                     isCategoryOf(questionCategory, NUMERIC, _period)) {
-
                 result = new NumDateExtractor(answerParsed, classificationFeaturizer.wordVecFeaturizer, verbNode).extract(answerGraph);
             }
-
             if (result == null) {
                 result = new GenericNumExtractor().extract(answerGraph);
             }
@@ -217,14 +198,11 @@ public class ShortAnswerExtractor {
 
         // YES/NO
         if (isCategoryOf(questionCategory, YESNO)) {
-
             result = new YesNoExctractor().extract(answerGraph);
         }
-
         if (result != null) {
             result.sort(Comparator.comparingInt(IndexedWord::index));
         }
-
         return result != null ? result.stream().map(IndexedWord::word).reduce((x, y) -> x + " " + y).get() : null;
     }
 
@@ -260,6 +238,19 @@ public class ShortAnswerExtractor {
         if (srlTree == null)
             return new ArrayList<>();
         return srlTree.getArgumentArcList();
+    }
+
+    /****************************************************************
+     * @return finds a node
+     */
+    private Pair<DEPNode, Integer> findNode(DEPNode target, DEPNode source, int depth, Function<DEPNode, Boolean> predicate, DEPTree tree) {
+
+        if (predicate.apply(target)) return new Pair<>(source != null ? source : target, depth);
+        for (SRLArc arc : getSemanticArcs(target, tree)) {
+            Pair<DEPNode, Integer> verb = findNode(arc.getNode(), source, depth + 1, predicate, tree);
+            if (verb != null) return verb;
+        }
+        return null;
     }
 
     /****************************************************************
