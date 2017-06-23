@@ -67,6 +67,7 @@ public class Demo {
     public static void runTest(String indexDir, String modelsPath,
             String classifierModel, String questionsFilePath) {
 
+        String currentQuestion = null;
         List<String> questions = new ArrayList<>();
         questions.add("What did Lincoln love?");
         questions.add("What does Kathy want?");
@@ -90,6 +91,7 @@ public class Demo {
             }
 
             for (String question : questions) {
+                currentQuestion = question;
                 System.out.println("**************************************************");
                 System.out.println("Question: " + question);
                 String sentence = fetchAnswerSentence(question, reader);
@@ -99,7 +101,7 @@ public class Demo {
             }
         }
         catch (Exception ex) {
-            System.out.println("Failed on a question: " + question);
+            System.out.println("Failed on a question: " + currentQuestion);
             ex.printStackTrace();
         }
     }
