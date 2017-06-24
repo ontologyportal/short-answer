@@ -5,7 +5,8 @@
  *
  *  This software is released under the GNU Public License <http://www.gnu.org/copyleft/gpl.html>.
  *  Please cite the following article in any publication with references:
- *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical Theories. AI Communications 26, pp79-97.
+ *  Pease A., and Benzmüller C. (2013). Sigma: An Integrated Development Environment for Logical
+ *  Theories. AI Communications 26, pp79-97.
  */
 
 package nlp.scripts;
@@ -32,15 +33,16 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Demo {
 
-    public static String corporaPath = System.getenv("CORPORA");
-    public static String saPath = corporaPath + File.separator + "short-answer-data";
-    public static String indexDir = saPath + File.separator + "index"; // args[0];
-    public static String modelsPath = saPath + File.separator + "models"; // args[1];
-    public static String classifierModel = "question-classifier.pa770.ser" ; // args[2];
-    public static String questionsFilePath = null; // args.length > 3 ? args[3]: null;
+    private static String corporaPath = System.getenv("CORPORA");
+    private static String saPath = corporaPath + File.separator + "short-answer-data";
+    private static String indexDir = saPath + File.separator + "index"; // args[0];
+    private static String modelsPath = saPath + File.separator + "models"; // args[1];
+    private static String classifierModel = "question-classifier.pa770.ser" ; // args[2];
+    private static String questionsFilePath = null; // args.length > 3 ? args[3]: null;
 
     /****************************************************************
      * fetches the answer candidate to be used for the short answer extraction
@@ -62,10 +64,34 @@ public class Demo {
     }
 
     /****************************************************************
+     */
+    public static void runOneTest(String question) {
+
+        try {
+            Directory dir = FSDirectory.open(Paths.get(indexDir));
+            IndexReader reader = DirectoryReader.open(dir);
+
+            PassiveAggressiveClassifier classifier = PassiveAggressiveClassifier.load(Paths.get(modelsPath, classifierModel));
+            QCFeaturizationPipeline featurizer = new QCFeaturizationPipeline(modelsPath);
+            ShortAnswerExtractor extractor = new ShortAnswerExtractor(new SemanticParser(), classifier, featurizer);
+
+            System.out.println("**************************************************");
+            System.out.println("Question: " + question);
+            String sentence = fetchAnswerSentence(question, reader);
+            String answer = extractor.extract(question, sentence);
+            System.out.println("Sentence: " + sentence);
+            System.out.println("Answer: " + answer);
+        }
+        catch (Exception ex) {
+            System.out.println("Failed on a question: " + question);
+            ex.printStackTrace();
+        }
+    }
+
+    /****************************************************************
      * runs the short question extraction demo
      */
-    public static void runTest(String indexDir, String modelsPath,
-            String classifierModel, String questionsFilePath) {
+    public static void runTest() {
 
         String currentQuestion = null;
         List<String> questions = new ArrayList<>();
@@ -109,6 +135,38 @@ public class Demo {
     /****************************************************************
      * runs the short question extraction demo
      */
+    public static void interactive() {
+
+        String input = "";
+        try {
+            Directory dir = FSDirectory.open(Paths.get(indexDir));
+            IndexReader reader = DirectoryReader.open(dir);
+
+            PassiveAggressiveClassifier classifier = PassiveAggressiveClassifier.load(Paths.get(modelsPath, classifierModel));
+            QCFeaturizationPipeline featurizer = new QCFeaturizationPipeline(modelsPath);
+            ShortAnswerExtractor extractor = new ShortAnswerExtractor(new SemanticParser(), classifier, featurizer);
+            Scanner scanner = new Scanner(System.in);
+            do {
+                System.out.print("Enter sentence: ");
+                input = scanner.nextLine().trim();
+                System.out.println("**************************************************");
+                System.out.println("Question: " + input);
+                String sentence = fetchAnswerSentence(input, reader);
+                String answer = extractor.extract(input, sentence);
+                System.out.println("Sentence: " + sentence);
+                System.out.println("Answer: " + answer);
+            }
+            while (!input.equals("quit"));
+        }
+        catch (Exception ex) {
+            System.out.println("Failed on a question: " + input);
+            ex.printStackTrace();
+        }
+    }
+
+    /****************************************************************
+     * runs the short question extraction demo
+     */
     public static void main(String[] args) {
 
         System.out.println("Demo.java running with: \n corporaPath:\t" + corporaPath);
@@ -127,10 +185,14 @@ public class Demo {
                 classifierModel = args[3];
             if (args.length > 4)
                 questionsFilePath = args[4];
-            runTest(indexDir,modelsPath,classifierModel,questionsFilePath);
+            runTest();
         }
         if (args != null && args.length > 1 && args[0].equals("-s")) {
             String query = StringUtil.removeEnclosingQuotes(args[1]);
+            runOneTest(query);
+        }
+        if (args != null && args.length > 0 && args[0].equals("-i")) {
+            interactive();
         }
         if (args == null || args.length < 1 || args[0].equals("-h")) {
             System.out.println("Short answer extraction");
