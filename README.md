@@ -85,3 +85,22 @@ java -Xmx7G -cp target/cobra-0.98.4-jar-with-dependencies.jar nlp.scripts.TestQu
 This outputs the accuracy on the test set inside questions-data-path dir. The models-path and the classifier-name are as in previous sections. Type is just a string "gross" or "fine"
 to indicate how to test the classifier.
 
+Alternative Ant-based Build
+======================
+cd ~
+echo "export SIGMA_SRC=~/workspace/sigmakee" >> .bashrc
+echo "export CORPORA=~/corpora" >> .bashrc
+source .bashrc
+cd ~/workspace/
+git clone https://github.com/ontologyportal/sigmanlp
+wget 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-12-09.zip'
+unzip stanford-corenlp-full-2015-12-09.zip
+rm stanford-corenlp-full-2015-12-09.zip
+cd ~/Programs/stanford-corenlp-full-2015-12-09/
+unzip stanford-corenlp-3.6.0-models.jar
+cp ~/Programs/stanford-corenlp-full-2015-12-09/stanford-corenlp-3.6.0.jar ~/workspace/short-answer/lib
+cp ~/Programs/stanford-corenlp-full-2015-12-09/stanford-corenlp-3.6.0-models.jar ~/workspace/short-answer/lib
+cd ~/workspace/short-answer/models
+wget 'http://nlp.stanford.edu/data/glove.6B.zip'
+unzip glove.6B.zip
+java -Xmx9G -cp ~/workspace/short-answer/build/classes:~/workspace/short-answer/build/lib/* nlp.scripts.Demo -t
