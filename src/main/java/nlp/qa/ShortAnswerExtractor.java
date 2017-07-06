@@ -10,6 +10,7 @@
 
 package nlp.qa;
 
+import com.articulate.sigma.WordNetUtilities;
 import edu.emory.clir.clearnlp.dependency.DEPNode;
 import edu.emory.clir.clearnlp.dependency.DEPTree;
 import edu.emory.clir.clearnlp.srl.SRLTree;
@@ -25,6 +26,9 @@ import nlp.learning.Scorer;
 import nlp.qa.extractors.*;
 import nlp.semantics.SemanticParser;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.LineNumberReader;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -66,7 +70,6 @@ class ManuallySetExtractingScorer implements Scorer {
 }
 
 /****************************************************************
- *
  */
 public class ShortAnswerExtractor {
 
@@ -76,6 +79,11 @@ public class ShortAnswerExtractor {
     private final QCFeaturizationPipeline classificationFeaturizer;
     private final Scorer extractingScorer;
     private final AnswerExtractionFeaturizer extractingFeaturizer;
+
+    // WordNet sense lists corresponding to UIUC answer types http://cogcomp.cs.illinois.edu/Data/QA/QC/definition.html
+    // TOP level UIUC type key to a set of second level type keys with sense number values
+    // Note there are no entries for ABBREVIATION, NUMERIC or DESCRIPTION types
+    public static HashMap<String,HashMap<String,HashSet<String>>> senseMap = new HashMap<>();
 
     /****************************************************************
      * @return instance of the extractor initialized with all the models
@@ -90,6 +98,51 @@ public class ShortAnswerExtractor {
         this.extractingFeaturizer = new AnswerExtractionFeaturizer();
     }
 
+    /****************************************************************
+     * Read in a mapping of UIUC answer types to WordNet 3.0 synsets
+     */
+    public static void readSenseMap() {
+
+        LineNumberReader lr = null;
+        try {
+            String line;
+            String filename = System.getenv("SIGMA_SRC") + "/../sumo/WordNetMappings/UIUC-WordNet-mapping.txt";
+            File f = new File(filename);
+            if (f == null) {
+                System.out.println("Error in readSenseMap(): The file does not exist in " + filename);
+                return;
+            }
+            FileReader r = new FileReader(filename);
+            lr = new LineNumberReader(r);
+            String topKey = "";
+            String secondKey = "";
+            HashSet<String> senseList = new HashSet<>();
+            HashMap<String,HashSet<String>> lowMap = new HashMap<>();
+            while ((line = lr.readLine()) != null) {
+                if (line.matches("^[A-Z]+")) {
+                    if (topKey != "") {
+                        senseMap.put(topKey,lowMap);
+                    }
+                    topKey = line.trim();
+                    lowMap = new HashMap<>();
+                }
+                else {
+                    int tab = (line.indexOf('\t',1));
+                    secondKey = line.substring(1,tab);
+                    String values = line.substring(tab+1).trim();
+                    String[] valuesAr = values.split(",");
+                    HashSet<String> synsets = new HashSet<String>();
+                    for (String s : valuesAr)
+                        synsets.add(s.trim());
+                    lowMap.put(secondKey,synsets);
+                }
+            }
+        }
+        catch (Exception ex) {
+            System.out.println("Error in readSenseMap(): " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
     /****************************************************************
      * @return a single word extracted from the @param answer,
      *         as a short answer to the @param question
@@ -126,6 +179,15 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
+     */
+    private String listOfIndexedWordToString(List<IndexedWord> result) {
+
+        if (result == null || result.size() == 0)
+            return "";
+        return result.stream().map(IndexedWord::word).reduce((x, y) -> x + " " + y).get();
+    }
+
+    /****************************************************************
      * @return The short answer according to the decision tree rules
      */
     private String extractWithDecisionTree(String question, SemanticGraph answerGraph, DEPTree answerParsed,
@@ -133,12 +195,28 @@ public class ShortAnswerExtractor {
 
         List<IndexedWord> result = null;
 
+        System.out.println("extractWithDecisionTree(): " + answerGraph);
+        System.out.println("category: " + questionCategory);
+        HashSet<String> synsets = new HashSet<>();
+        String topCat = ""; // top level UIUC category
+        String lowCat = ""; // second level UIUC category
+        String[] cats = questionCategory.split(":");
+        if (cats.length > 1) {
+            topCat = cats[0];
+            lowCat = cats[1];
+            if (topCat != "" && senseMap.keySet().contains(topCat)) {
+                HashSet<String> synsetSet = senseMap.get(topCat).get(lowCat);
+                System.out.println("extractWithDecisionTree(): " + synsetSet);
+            }
+        }
         // ENTITY
         if (isCategoryOf(questionCategory, ENTITY)) {
             result = new RelationExtractor(APPOS).extract(answerGraph);
             if (result == null && isCategoryOf(questionCategory, ENTITY, _creative)) {
                 result = new FirstCapSeqExtractor().extract(answerGraph);
             }
+            System.out.println("extractWithDecisionTree(): WN match: " +
+                    WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result),synsets));
         }
 
         // DESCRIPTION
@@ -162,8 +240,11 @@ public class ShortAnswerExtractor {
                 result = new HumDescExtractor().extract(answerGraph);
             }
             else {
-                if (genericResult.getNamedEntityTag().toLowerCase().equals("person")) {
-                    return genericResult.getWordForm();
+                if (genericResult != null && genericResult.getNamedEntityTag().toLowerCase().equals("person")) {
+                    String stringResult = genericResult.getWordForm();
+                    System.out.println("extractWithDecisionTree(): WN match: " +
+                            WordNetUtilities.isHyponymousWord(stringResult,synsets));
+                    return stringResult;
                 }
                 //System.out.println("ShortAnswerExtractor.extractWithDecisionTree(): " + answerGraph);
                 //System.out.println("ShortAnswerExtractor.extractWithDecisionTree(): " + question);
@@ -174,22 +255,26 @@ public class ShortAnswerExtractor {
                 if (words != null && !words.isEmpty())
                     result = words;
             }
+            System.out.println("extractWithDecisionTree(): WN match: " +
+                    WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result),synsets));
         }
 
         // LOCATION
         if (isCategoryOf(questionCategory, LOCATION)) {
             result = new LocationExtractor(answerParsed,questionParsed).extract(answerGraph);
+            System.out.println("extractWithDecisionTree(): WN match: " +
+                    WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result),synsets));
         }
 
         // NUMERIC
         if (isCategoryOf(questionCategory, NUMERIC)) {
-
             if (isCategoryOf(questionCategory, NUMERIC, _count)) {
                 result = new NumCountExtractor().extract(answerGraph);
             }
             if (isCategoryOf(questionCategory, NUMERIC, _date) ||
                     isCategoryOf(questionCategory, NUMERIC, _period)) {
-                result = new NumDateExtractor(answerParsed, classificationFeaturizer.wordVecFeaturizer, verbNode).extract(answerGraph);
+                if (verbNode != null)
+                    result = new NumDateExtractor(answerParsed, classificationFeaturizer.wordVecFeaturizer, verbNode).extract(answerGraph);
             }
             if (result == null) {
                 result = new GenericNumExtractor().extract(answerGraph);
@@ -198,12 +283,14 @@ public class ShortAnswerExtractor {
 
         // YES/NO
         if (isCategoryOf(questionCategory, YESNO)) {
-            result = new YesNoExctractor().extract(answerGraph);
+            result = new YesNoExtractor().extract(answerGraph);
         }
         if (result != null) {
             result.sort(Comparator.comparingInt(IndexedWord::index));
         }
-        return result != null ? result.stream().map(IndexedWord::word).reduce((x, y) -> x + " " + y).get() : null;
+        if (result == null || result.size() == 0)
+            return null;
+        return result.stream().map(IndexedWord::word).reduce((x, y) -> x + " " + y).get();
     }
 
     /****************************************************************
@@ -214,6 +301,8 @@ public class ShortAnswerExtractor {
 
         DEPNode matchedNode = matchSemantics(verbNode, answerParsed);
 
+        if (answerParsed == null || answerParsed.getSRLTree(matchedNode) == null)
+            return null;
         // featurize all the candidates
         List<Pair<SRLArc, SparseFeatureVector>> featurizedCandidates = answerParsed.getSRLTree(matchedNode).getArgumentArcList().stream().map(a ->
                 new Pair<>(a, extractingFeaturizer.featurize(a, getSemanticArcs(verbNode, questionParsed), questionCategory))).
@@ -234,6 +323,8 @@ public class ShortAnswerExtractor {
      */
     private List<SRLArc> getSemanticArcs(DEPNode node, DEPTree tree) {
 
+        if (tree == null || node == null)
+            return new ArrayList<>();
         SRLTree srlTree = tree.getSRLTree(node);
         if (srlTree == null)
             return new ArrayList<>();
@@ -261,15 +352,21 @@ public class ShortAnswerExtractor {
         // find the question word and the nearest verb
         DEPNode questionWord = findQuestionWord(tree);
 
-        if (questionWord != null) {
+        if (questionWord != null && tree.toNodeArray() != null) {
 
-            return Arrays.stream(tree.toNodeArray()).filter(n -> n.getPOSTag().toLowerCase().startsWith("v")).
-                    sorted(Comparator.comparingInt(n -> Math.abs(questionWord.getID() - n.getID()))).findFirst().get();
+            return Arrays.stream(tree.toNodeArray())
+                    .filter(n -> n.getPOSTag().toLowerCase().startsWith("v"))
+                    .sorted(Comparator.comparingInt(n -> Math.abs(questionWord.getID() - n.getID())))
+                    .findFirst()
+                    .orElse(null); //.get();
         }
 
         // if no question word, then just the first verb
-        return Arrays.stream(tree.toNodeArray()).filter(n -> n.getPOSTag().toLowerCase().startsWith("v")).
-                sorted(Comparator.comparingInt(n -> n.getID())).findFirst().get();
+        return Arrays.stream(tree.toNodeArray())
+                .filter(n -> n.getPOSTag().toLowerCase().startsWith("v"))
+                .sorted(Comparator.comparingInt(n -> n.getID()))
+                .findFirst()
+                .orElse(null); // .get();
     }
 
     /****************************************************************
@@ -277,9 +374,11 @@ public class ShortAnswerExtractor {
      */
     private DEPNode findQuestionWord(DEPTree questionTree) {
 
-        List<DEPNode> questionWords = Arrays.stream(questionTree.toNodeArray()).filter(n ->
-                QuestionFociExtractor.questionWords.contains(n.getWordForm().toLowerCase())).
-                sorted(Comparator.comparingInt(n -> n.getID())).collect(Collectors.toList());
+        List<DEPNode> questionWords =
+                Arrays.stream(questionTree.toNodeArray())
+                        .filter(n -> QuestionFociExtractor.questionWords.contains(n.getWordForm().toLowerCase()))
+                        .sorted(Comparator.comparingInt(n -> n.getID()))
+                        .collect(Collectors.toList());
 
         if (!questionWords.isEmpty()) {
             return questionWords.get(0);
