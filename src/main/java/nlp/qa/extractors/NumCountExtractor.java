@@ -29,8 +29,13 @@ public class NumCountExtractor extends AnswerExtractor {
     public List<IndexedWord> extract(SemanticGraph answerGraph) {
 
         List<IndexedWord> num = new RelationExtractor("num").extract(answerGraph);
-        if (!num.isEmpty()) {
+        if (num != null && !num.isEmpty()) {
             return num;
+        }
+        else {
+            num = new RelationExtractor("nummod").extract(answerGraph);
+            if (num != null && !num.isEmpty())
+                return num;
         }
 
         Optional<IndexedWord> cd = sentenceWords(answerGraph).stream().filter(w -> w.tag().toLowerCase().equals("cd")).findAny();
