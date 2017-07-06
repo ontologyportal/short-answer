@@ -21,13 +21,13 @@ import java.util.Set;
 /**
  * A simplistic yes/no extractor based on negativity words
  */
-public class YesNoExctractor extends AnswerExtractor {
+public class YesNoExtractor extends AnswerExtractor {
 
     private final IndexedWord no;
     private final IndexedWord yes;
     Set<String> negationWords = new HashSet<String>();
 
-    public YesNoExctractor() {
+    public YesNoExtractor() {
 
         negationWords.add("no");
         negationWords.add("not");
