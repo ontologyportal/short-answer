@@ -29,19 +29,9 @@ import java.nio.file.Paths;
 public class IndexSentences {
 
     /****************************************************************
-     * runs the indexing of all the sentences which represents the candidates for the answers
-     */
-    public static void main(String[] args) throws IOException {
-
-        String corpusDir = args[0];
-        String indexDir = args[1];
-        indexDocs(corpusDir, indexDir);
-    }
-
-    /****************************************************************
      * indexes the sentences
      */
-    private static void indexDocs(String inputDir, String indexDir) throws IOException {
+    public static void indexDocs(String inputDir, String indexDir) throws IOException {
 
         EnglishAnalyzer analyzer = new EnglishAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
@@ -79,5 +69,15 @@ public class IndexSentences {
         Document document = new Document();
         document.add(new TextField("sentence", line, Field.Store.YES));
         return document;
+    }
+
+    /****************************************************************
+     * runs the indexing of all the sentences which represents the candidates for the answers
+     */
+    public static void main(String[] args) throws IOException {
+
+        String corpusDir = args[0];
+        String indexDir = args[1];
+        indexDocs(corpusDir, indexDir);
     }
 }
