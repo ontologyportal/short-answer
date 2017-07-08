@@ -10,6 +10,7 @@
 
 package nlp.qa;
 
+import com.articulate.sigma.KBmanager;
 import com.articulate.sigma.WordNetUtilities;
 import edu.emory.clir.clearnlp.dependency.DEPNode;
 import edu.emory.clir.clearnlp.dependency.DEPTree;
@@ -103,6 +104,7 @@ public class ShortAnswerExtractor {
      */
     public static void readSenseMap() {
 
+        System.out.println("ShortAnswerExtractor(): readSenseMap()");
         LineNumberReader lr = null;
         try {
             String line;
@@ -137,12 +139,16 @@ public class ShortAnswerExtractor {
                     lowMap.put(secondKey,synsets);
                 }
             }
+            if (topKey != "")
+                senseMap.put(topKey,lowMap);
         }
         catch (Exception ex) {
             System.out.println("Error in readSenseMap(): " + ex.getMessage());
             ex.printStackTrace();
         }
+        System.out.println("readSenseMap(): " + senseMap);
     }
+
     /****************************************************************
      * @return a single word extracted from the @param answer,
      *         as a short answer to the @param question
@@ -171,6 +177,9 @@ public class ShortAnswerExtractor {
         String decisionResult = extractWithDecisionTree(question, depParse, answerParsed, questionParsed,
                 genericResult, questionCategory, verbNode);
 
+        System.out.println("extract(): generic result " + genericResult);
+        System.out.println("extract(): decision result " + decisionResult);
+
         if (decisionResult != null)
             return decisionResult;
         if (genericResult != null)
@@ -197,7 +206,7 @@ public class ShortAnswerExtractor {
 
         System.out.println("extractWithDecisionTree(): " + answerGraph);
         System.out.println("category: " + questionCategory);
-        HashSet<String> synsets = new HashSet<>();
+        HashSet<String> synsetSet = new HashSet<>();
         String topCat = ""; // top level UIUC category
         String lowCat = ""; // second level UIUC category
         String[] cats = questionCategory.split(":");
@@ -205,8 +214,8 @@ public class ShortAnswerExtractor {
             topCat = cats[0];
             lowCat = cats[1];
             if (topCat != "" && senseMap.keySet().contains(topCat)) {
-                HashSet<String> synsetSet = senseMap.get(topCat).get(lowCat);
-                System.out.println("extractWithDecisionTree(): " + synsetSet);
+                synsetSet = senseMap.get(topCat).get(lowCat);
+                System.out.println("extractWithDecisionTree(): synsets: " + synsetSet);
             }
         }
         // ENTITY
@@ -215,8 +224,11 @@ public class ShortAnswerExtractor {
             if (result == null && isCategoryOf(questionCategory, ENTITY, _creative)) {
                 result = new FirstCapSeqExtractor().extract(answerGraph);
             }
-            System.out.println("extractWithDecisionTree(): WN match: " +
-                    WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result),synsets));
+            if (synsetSet != null) {
+                System.out.println("extractWithDecisionTree(): WN match: with word: ");
+                System.out.println(listOfIndexedWordToString(result) + " and top synsets: " + synsetSet + " : ");
+                System.out.println(WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result), synsetSet));
+            }
         }
 
         // DESCRIPTION
@@ -242,8 +254,11 @@ public class ShortAnswerExtractor {
             else {
                 if (genericResult != null && genericResult.getNamedEntityTag().toLowerCase().equals("person")) {
                     String stringResult = genericResult.getWordForm();
-                    System.out.println("extractWithDecisionTree(): WN match: " +
-                            WordNetUtilities.isHyponymousWord(stringResult,synsets));
+                    if (synsetSet != null) {
+                        System.out.println("extractWithDecisionTree(): WN match: with word: ");
+                        System.out.println(stringResult + " and top synsets: " + synsetSet + " : ");
+                        System.out.println(WordNetUtilities.isHyponymousWord(stringResult, synsetSet));
+                    }
                     return stringResult;
                 }
                 //System.out.println("ShortAnswerExtractor.extractWithDecisionTree(): " + answerGraph);
@@ -255,15 +270,21 @@ public class ShortAnswerExtractor {
                 if (words != null && !words.isEmpty())
                     result = words;
             }
-            System.out.println("extractWithDecisionTree(): WN match: " +
-                    WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result),synsets));
+            if (synsetSet != null) {
+                System.out.println("extractWithDecisionTree(): WN match: with word: ");
+                System.out.println(listOfIndexedWordToString(result) + " and top synsets: " + synsetSet + " : ");
+                System.out.println(WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result), synsetSet));
+            }
         }
 
         // LOCATION
         if (isCategoryOf(questionCategory, LOCATION)) {
             result = new LocationExtractor(answerParsed,questionParsed).extract(answerGraph);
-            System.out.println("extractWithDecisionTree(): WN match: " +
-                    WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result),synsets));
+            if (synsetSet != null) {
+                System.out.println("extractWithDecisionTree(): WN match: with word: ");
+                System.out.println(listOfIndexedWordToString(result) + " and top synsets: " + synsetSet + " : ");
+                System.out.println(WordNetUtilities.isHyponymousWord(listOfIndexedWordToString(result), synsetSet));
+            }
         }
 
         // NUMERIC
@@ -290,7 +311,7 @@ public class ShortAnswerExtractor {
         }
         if (result == null || result.size() == 0)
             return null;
-        return result.stream().map(IndexedWord::word).reduce((x, y) -> x + " " + y).get();
+        return listOfIndexedWordToString(result);
     }
 
     /****************************************************************
@@ -415,5 +436,18 @@ public class ShortAnswerExtractor {
             return null;
 
         return sorted.get(0).first;
+    }
+
+    /****************************************************************
+     */
+    public static void main(String[] args) {
+
+        if (args.length > 0) {
+            System.out.println("ShortAnswerExtractor.main(): test readSenseMap()");
+            KBmanager.getMgr().initializeOnce();
+            String synset = args[0];
+            String word = args[1];
+
+        }
     }
 }
