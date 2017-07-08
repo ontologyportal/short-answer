@@ -3,6 +3,7 @@
   <property name="compiler.debug" value="on"/>
   <property name="app.name" value="short-answer"/>
   <property name="sigmakee.home" value="${env.SIGMA_SRC}" />
+  <property name="sigmanlp.home" value="${env.SIGMA_SRC}/../sigmanlp" />
   <property name="tomcat.home" value="${env.CATALINA_HOME}"/>
   <property name="deploy.home" value="${tomcat.home}/webapps/${app.name}"/>
   <property name="build.classes" value="${basedir}/build/classes"/>
@@ -38,7 +39,9 @@
     <echo message="basedir is set to = ${basedir}"/>
     <echo>sigmakee home: ${sigmakee.home}</echo>
     <ant antfile="../sigmakee/build.xml" inheritAll="false" target="all" />
+    <ant antfile="../sigmanlp/build.xml" inheritAll="false" target="all" />
     <copy todir="${basedir}/lib" file="${sigmakee.home}/build/sigmakee.jar" />
+    <copy todir="${basedir}/lib" file="${sigmanlp.home}/build/sigmanlp.jar" />
   </target>
   
   <target name="compile" depends="init" description="Compile sigmanlp">
