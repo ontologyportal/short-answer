@@ -55,12 +55,10 @@ public class NumDateExtractor extends AnswerExtractor {
 
         Optional<SRLArc> tmp = getAllSRLArcs(depTree).stream().filter(a -> a.getLabel().toLowerCase().contains("tmp")).findFirst();
         if (tmp.isPresent()) {
-
             return tmp.get().getNode().getDependentList().stream().filter(d -> d.getNamedEntityTag().toLowerCase().
                     contains("date")).map(this::dn2iw).sorted(Comparator.comparingInt(IndexedWord::index)).collect(Collectors.toList());
         }
         else {
-
             List<IndexedWord> dates = Arrays.stream(depTree.toNodeArray()).filter(n -> n.getNamedEntityTag().toLowerCase().contains("date")).map(this::dn2iw).
                     sorted(Comparator.comparingInt(IndexedWord::index)).collect(Collectors.toList());
 
@@ -68,12 +66,10 @@ public class NumDateExtractor extends AnswerExtractor {
                 return dates;
             }
             else {
-
                 Optional<Pair<DEPNode, Double>> first = Arrays.stream(depTree.toNodeArray()).map(n -> new Pair<>(n, featurizer.featurize(n.getWordForm()).
                         similarity(verbNodeWV))).sorted(Comparator.comparingDouble(s -> s.second)).findFirst();
 
                 if (first.isPresent()) {
-
                     Optional<SRLArc> tmp1 = first.get().first.getSemanticHeadArcList().stream().filter(a -> a.getLabel().toLowerCase().contains("tmp")).findFirst();
                     if (tmp1.isPresent()) {
                         List<IndexedWord> dates2 = tmp1.get().getNode().getDependentList().stream().map(this::dn2iw).collect(Collectors.toList());
@@ -91,7 +87,6 @@ public class NumDateExtractor extends AnswerExtractor {
             }
 
         }
-
         return null;
     }
 }
