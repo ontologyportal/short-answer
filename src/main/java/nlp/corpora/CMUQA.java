@@ -2,6 +2,7 @@ package nlp.corpora;
 
 import com.articulate.nlp.lucene.LuceneIR;
 import com.articulate.nlp.lucene.SearchResult;
+import com.articulate.sigma.KBmanager;
 import com.articulate.sigma.StringUtil;
 import nlp.features.QCFeaturizationPipeline;
 import nlp.learning.PassiveAggressiveClassifier;
@@ -166,6 +167,7 @@ public class CMUQA {
      */
     public static void main(String[] args) {
 
+        KBmanager.getMgr().initializeOnce();
         ShortAnswerExtractor.readSenseMap();
         System.out.println("CMUQA.main(): index docs");
         IndexDocuments.indexDocuments(corpusDir, indexDir);
