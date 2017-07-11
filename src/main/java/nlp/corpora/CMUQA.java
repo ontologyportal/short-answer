@@ -4,6 +4,7 @@ import com.articulate.nlp.lucene.LuceneIR;
 import com.articulate.nlp.lucene.SearchResult;
 import com.articulate.sigma.KBmanager;
 import com.articulate.sigma.StringUtil;
+import com.articulate.sigma.WordNetUtilities;
 import nlp.features.QCFeaturizationPipeline;
 import nlp.learning.PassiveAggressiveClassifier;
 import nlp.qa.ShortAnswerExtractor;
@@ -95,8 +96,9 @@ public class CMUQA {
 
     /****************************************************************
      */
-    private static void runTest() {
+    private static ArrayList<SearchResult> runTest() {
 
+        ArrayList<SearchResult> result = new ArrayList<SearchResult>();
         int right = 0;
         int wrong = 0;
         StandardAnalyzer sa = new StandardAnalyzer();
@@ -138,10 +140,13 @@ public class CMUQA {
                             sr.query = currentQuestion;
                             ArrayList<String> sents = lir.getSentenceAnswers(d, sr, 1);
                             for (String sent : sents) {
+                                sr.sentenceAnswers.add(sent);
                                 System.out.println("Sentence: " + sent);
-                                String answer = extractor.extract(currentQuestion, sent);
+                                String answer = extractor.extract(currentQuestion, sent, sr);
+                                sr.answers.put(d.get("path"),answer);
                                 System.out.println("Answer: " + answer);
                                 System.out.println("desiredAnswer: " + desiredAnswer);
+                                sr.expectedAnswer = desiredAnswer;
                                 if (!StringUtil.emptyString(desiredAnswer) &&
                                         !StringUtil.emptyString(answer)) {
                                     if (desiredAnswer.toLowerCase().contains(answer.toLowerCase()))
@@ -150,6 +155,7 @@ public class CMUQA {
                                         wrong++;
                                 }
                             }
+                            result.add(sr);
                         }
                     }
                 }
@@ -161,23 +167,70 @@ public class CMUQA {
         }
         System.out.println("Total right: " + right);
         System.out.println("Total wrong: " + wrong);
+        return result;
+    }
+
+    /****************************************************************
+     * Test whether the UIUC-WN sense mappings cover all of the answers
+     * in the CMU corpus.
+     */
+    public static void testSenseMaps() {
+
+        KBmanager.getMgr().initializeOnce();
+        ShortAnswerExtractor.readSenseMap();
+        System.out.println("CMUQA.testSenseMaps(): index docs");
+        //IndexDocuments.indexDocuments(corpusDir, indexDir);
+        System.out.println("CMUQA.testSenseMaps(): Demo.init()");
+        Demo.init();
+        System.out.println("CMUQA.testSenseMaps(): readCMUQA()");
+        readCMUQA();
+        System.out.println("CMUQA.testSenseMaps(): IndexDocuments.test()");
+        //IndexDocuments.test("England","/home/apease/corpora/Question_Answer_Dataset_v1.2/combined/index");
+        System.out.println("CMUQA.testSenseMaps(): IndexDocuments.runTest()");
+        ArrayList<SearchResult> result = runTest();
+        for (SearchResult sr : result) {
+            HashSet<String> synsets = ShortAnswerExtractor.getSenses(sr.UIUCtopCat,sr.UIUC2ndCat);
+            for (String ans : sr.answers.values()) {
+                if (synsets != null && !WordNetUtilities.isHyponymousWord(ans, synsets)) {
+                    System.out.println("non-matching ans: " + ans + " synset: " + synsets);
+                }
+                if (synsets != null && WordNetUtilities.isHyponymousWord(ans, synsets)) {
+                    System.out.println("matching ans: " + ans + " synset: " + synsets);
+                }
+            }
+            if (synsets != null && !WordNetUtilities.isHyponymousWord(sr.expectedAnswer, synsets)) {
+                System.out.println("non-matching expected ans: " + sr.expectedAnswer + " synset: " + synsets);
+            }
+            if (synsets != null && WordNetUtilities.isHyponymousWord(sr.expectedAnswer, synsets)) {
+                System.out.println("matching expected ans: " + sr.expectedAnswer + " synset: " + synsets);
+            }
+        }
+    }
+
+    /****************************************************************
+     * Test whether the UIUC-WN sense mappings cover all of the answers
+     * in the CMU corpus.
+     */
+    public static void runCMUQAtest() {
+
+        KBmanager.getMgr().initializeOnce();
+        ShortAnswerExtractor.readSenseMap();
+        System.out.println("CMUQA.main(): index docs");
+        //IndexDocuments.indexDocuments(corpusDir, indexDir);
+        System.out.println("CMUQA.main(): Demo.init()");
+        Demo.init();
+        System.out.println("CMUQA.main(): readCMUQA()");
+        readCMUQA();
+        System.out.println("CMUQA.main(): IndexDocuments.test()");
+        //IndexDocuments.test("England","/home/apease/corpora/Question_Answer_Dataset_v1.2/combined/index");
+        System.out.println("CMUQA.main(): IndexDocuments.runTest()");
+        runTest();
     }
 
     /****************************************************************
      */
     public static void main(String[] args) {
 
-        KBmanager.getMgr().initializeOnce();
-        ShortAnswerExtractor.readSenseMap();
-        System.out.println("CMUQA.main(): index docs");
-        IndexDocuments.indexDocuments(corpusDir, indexDir);
-        System.out.println("CMUQA.main(): Demo.init()");
-        Demo.init();
-        System.out.println("CMUQA.main(): readCMUQA()");
-        readCMUQA();
-        System.out.println("CMUQA.main(): IndexDocuments.test()");
-        IndexDocuments.test("England","/home/apease/corpora/Question_Answer_Dataset_v1.2/combined/index");
-        System.out.println("CMUQA.main(): IndexDocuments.runTest()");
-        runTest();
+        testSenseMaps();
     }
 }
