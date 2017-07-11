@@ -182,7 +182,8 @@ public class Demo {
             System.out.println("**************************************************");
             System.out.println("Question: " + question);
             String sentence = fetchAnswerSentence(question, reader);
-            String answer = extractor.extract(question, sentence);
+            SearchResult sr = new SearchResult();
+            String answer = extractor.extract(question, sentence,sr);
             System.out.println("Sentence: " + sentence);
             System.out.println("Answer: " + answer);
         }
@@ -225,7 +226,8 @@ public class Demo {
                 System.out.println("**************************************************");
                 System.out.println("Question: " + question);
                 String sentence = fetchAnswerSentence(question, reader);
-                String answer = extractor.extract(question, sentence);
+                SearchResult sr = new SearchResult();
+                String answer = extractor.extract(question, sentence,sr);
                 System.out.println("Sentence: " + sentence);
                 System.out.println("Answer: " + answer);
             }
@@ -253,12 +255,18 @@ public class Demo {
             do {
                 System.out.print("Enter sentence: ");
                 input = scanner.nextLine().trim();
-                System.out.println("**************************************************");
-                System.out.println("Question: " + input);
-                String sentence = fetchAnswerSentence(input, reader);
-                String answer = extractor.extract(input, sentence);
-                System.out.println("Sentence: " + sentence);
-                System.out.println("Answer: " + answer);
+                if (input.equals("quit")) {
+                    System.out.println("quitting");
+                }
+                else {
+                    System.out.println("**************************************************");
+                    System.out.println("Question: " + input);
+                    String sentence = fetchAnswerSentence(input, reader);
+                    SearchResult sr = new SearchResult();
+                    String answer = extractor.extract(input, sentence, sr);
+                    System.out.println("Sentence: " + sentence);
+                    System.out.println("Answer: " + answer);
+                }
             }
             while (!input.equals("quit"));
         }
