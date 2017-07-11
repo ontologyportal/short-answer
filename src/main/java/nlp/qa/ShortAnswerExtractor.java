@@ -10,7 +10,9 @@
 
 package nlp.qa;
 
+import com.articulate.nlp.lucene.SearchResult;
 import com.articulate.sigma.KBmanager;
+import com.articulate.sigma.WordNet;
 import com.articulate.sigma.WordNetUtilities;
 import edu.emory.clir.clearnlp.dependency.DEPNode;
 import edu.emory.clir.clearnlp.dependency.DEPTree;
@@ -100,6 +102,17 @@ public class ShortAnswerExtractor {
     }
 
     /****************************************************************
+     * get the mapping of UIUC answer types to WordNet 3.0 synsets
+     */
+    public static HashSet<String> getSenses(String topCat, String lowCat) {
+
+        if (topCat != "" && senseMap.keySet().contains(topCat))
+            return senseMap.get(topCat).get(lowCat);
+        else
+            return null;
+    }
+
+    /****************************************************************
      * Read in a mapping of UIUC answer types to WordNet 3.0 synsets
      */
     public static void readSenseMap() {
@@ -153,7 +166,7 @@ public class ShortAnswerExtractor {
      * @return a single word extracted from the @param answer,
      *         as a short answer to the @param question
      */
-    public String extract(String question, String answer) {
+    public String extract(String question, String answer, SearchResult sr) {
 
         //List<Pair<String, Double>> predicted = classifier.score(classificationFeaturizer.featurize(answer));
 
@@ -175,7 +188,7 @@ public class ShortAnswerExtractor {
         DEPNode genericResult = genericExtract(questionParsed, answerParsed, questionCategory, verbNode);
 
         String decisionResult = extractWithDecisionTree(question, depParse, answerParsed, questionParsed,
-                genericResult, questionCategory, verbNode);
+                genericResult, questionCategory, verbNode, sr);
 
         System.out.println("extract(): generic result " + genericResult);
         System.out.println("extract(): decision result " + decisionResult);
@@ -200,7 +213,8 @@ public class ShortAnswerExtractor {
      * @return The short answer according to the decision tree rules
      */
     private String extractWithDecisionTree(String question, SemanticGraph answerGraph, DEPTree answerParsed,
-                                           DEPTree questionParsed, DEPNode genericResult, String questionCategory, DEPNode verbNode) {
+                                           DEPTree questionParsed, DEPNode genericResult, String questionCategory,
+                                           DEPNode verbNode, SearchResult sr) {
 
         List<IndexedWord> result = null;
 
@@ -214,6 +228,8 @@ public class ShortAnswerExtractor {
             topCat = cats[0];
             lowCat = cats[1];
             if (topCat != "" && senseMap.keySet().contains(topCat)) {
+                sr.UIUCtopCat = topCat;
+                sr.UIUC2ndCat = lowCat;
                 synsetSet = senseMap.get(topCat).get(lowCat);
                 System.out.println("extractWithDecisionTree(): synsets: " + synsetSet);
             }
@@ -445,9 +461,12 @@ public class ShortAnswerExtractor {
         if (args.length > 0) {
             System.out.println("ShortAnswerExtractor.main(): test readSenseMap()");
             KBmanager.getMgr().initializeOnce();
-            String synset = args[0];
-            String word = args[1];
-
+            String word = args[0];
+            String synset = args[1];
+            HashSet<String> synsets = new HashSet<>();
+            synsets.add(synset);
+            System.out.println("isHyponymousWord(" + word + "," + synsets + ")");
+            System.out.println(WordNetUtilities.isHyponymousWord(word,synsets));
         }
     }
 }
